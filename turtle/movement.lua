@@ -3,6 +3,15 @@ local state = require("movement_state")
 local mining = require("movement_mining")
 local pathfinder = require("movement_pathfinder")
 
+local function isClear(inspectFn)
+  if not inspectFn then
+    return false
+  end
+
+  local exists = inspectFn()
+  return not exists
+end
+
 local function move(turtleFn, updateState, inspectFn, digFn)
   for _ = 1, 16 do
     if inspectFn and digFn then
@@ -26,6 +35,16 @@ local function move(turtleFn, updateState, inspectFn, digFn)
     if not inspectFn then
       return false, reason
     end
+
+    if isClear(inspectFn) then
+      os.sleep(0.25)
+    else
+      return false, reason
+    end
+  end
+
+  if inspectFn and isClear(inspectFn) then
+    return false, "blocked by liquid or entity"
   end
 
   return false, "blocked after repeated mining attempts"
@@ -245,10 +264,13 @@ local function navigateTo(x, y, z, keepTrying)
       os.sleep(0.25)
     else
       for _, nextNode in ipairs(path) do
-        local ok = stepTo(nextNode)
+        local ok, stepReason = stepTo(nextNode)
         if not ok then
           failedSteps = failedSteps + 1
-          blocked[pathfinder.key(nextNode.x, nextNode.y, nextNode.z)] = true
+          if stepReason ~= "blocked by liquid or entity" then
+            blocked[pathfinder.key(nextNode.x, nextNode.y, nextNode.z)] = true
+          end
+
           padding = math.max(padding, 4)
           if not keepTrying and failedSteps >= 8 then
             return false, "route blocked"

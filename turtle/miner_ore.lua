@@ -160,12 +160,42 @@ local function mineConnectedOre(targetFamily, visited)
 end
 
 function ore.mineVeinAt(target)
-  local ok, reason = movement.goTo(target.x, target.y, target.z)
+  local targetFamily = oreFamily(target.name)
+  local approach = {
+    { x = 1, y = 0, z = 0 },
+    { x = -1, y = 0, z = 0 },
+    { x = 0, y = 0, z = 1 },
+    { x = 0, y = 0, z = -1 },
+    { x = 0, y = 1, z = 0 },
+    { x = 0, y = -1, z = 0 },
+  }
+
+  local ok, reason
+  local found = false
+
+  for _, dir in ipairs(approach) do
+    ok, reason = movement.tryGoTo(target.x + dir.x, target.y + dir.y, target.z + dir.z)
+    if ok then
+      local adjacent = findAdjacentOre(targetFamily, {})
+      if adjacent
+        and adjacent.x == target.x
+        and adjacent.y == target.y
+        and adjacent.z == target.z then
+        found = true
+        break
+      end
+    end
+  end
+
+  if not found then
+    return true, {}
+  end
+
+  ok, reason = movement.goTo(target.x, target.y, target.z)
   if not ok then
     return false, reason
   end
 
-  local targetFamily = oreFamily(target.name)
   local visited = {
     [key(target.x, target.y, target.z)] = true,
   }
