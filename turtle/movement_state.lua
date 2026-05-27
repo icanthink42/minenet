@@ -1,6 +1,7 @@
 local movementState = {}
 
 local stateFile = ".movement_state"
+local createdOnLoad = false
 
 local dirs = {
   north = { x = 0, z = -1 },
@@ -77,6 +78,7 @@ end
 
 function movementState.load()
   if not fs.exists(stateFile) then
+    createdOnLoad = true
     movementState.save()
     return true
   end
@@ -99,6 +101,10 @@ function movementState.load()
   state.z = loaded.z
   state.facing = loaded.facing
   return true
+end
+
+function movementState.createdOnLoad()
+  return createdOnLoad
 end
 
 function movementState.position()

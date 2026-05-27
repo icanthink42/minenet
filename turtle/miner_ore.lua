@@ -171,7 +171,7 @@ function ore.mineVeinAt(target)
   }
 
   local ok, reason
-  local found = false
+  local found = nil
 
   for _, dir in ipairs(approach) do
     ok, reason = movement.tryGoTo(target.x + dir.x, target.y + dir.y, target.z + dir.z)
@@ -181,7 +181,7 @@ function ore.mineVeinAt(target)
         and adjacent.x == target.x
         and adjacent.y == target.y
         and adjacent.z == target.z then
-        found = true
+        found = adjacent
         break
       end
     end
@@ -191,7 +191,12 @@ function ore.mineVeinAt(target)
     return true, {}
   end
 
-  ok, reason = movement.goTo(target.x, target.y, target.z)
+  ok, reason = digDirection(found.dir)
+  if not ok then
+    return false, reason
+  end
+
+  ok, reason = moveIntoDirection(found.dir)
   if not ok then
     return false, reason
   end

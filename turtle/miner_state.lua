@@ -164,6 +164,16 @@ function minerState.markInitialized()
   return minerState.save()
 end
 
+function minerState.reset()
+  state.column = 0
+  state.direction = "down"
+  state.initialized = false
+  state.bedrockY = nil
+  state.detourX = 0
+  state.detourZ = 0
+  return minerState.save()
+end
+
 function minerState.set(column, direction)
   if type(column) ~= "number" then
     return false, "column must be a number"

@@ -78,6 +78,10 @@ function movement.resetHome(facing)
   return state.resetHome(facing)
 end
 
+function movement.createdStateOnLoad()
+  return state.createdOnLoad()
+end
+
 function movement.forward()
   return move(turtle.forward, function()
     state.moveHorizontal(1)

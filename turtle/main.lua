@@ -168,6 +168,18 @@ local function initialize()
     return false, reason
   end
 
+  if movement.createdStateOnLoad() then
+    ok, reason = movement.resetHome("north")
+    if not ok then
+      return false, reason
+    end
+
+    ok, reason = runState.reset()
+    if not ok then
+      return false, reason
+    end
+  end
+
   if not runState.initialized() then
     ok, reason = ensureCanContinue()
     if not ok then
