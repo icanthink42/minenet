@@ -71,8 +71,38 @@ function inventory.dropTrash()
   turtle.select(previousSlot)
 end
 
-function inventory.isFull()
+function inventory.compact()
+  local previousSlot = turtle.getSelectedSlot()
+
+  for source = 1, 16 do
+    local sourceDetail = turtle.getItemDetail(source)
+    if sourceDetail then
+      for target = 1, 16 do
+        if source ~= target then
+          local targetDetail = turtle.getItemDetail(target)
+          if targetDetail and targetDetail.name == sourceDetail.name then
+            turtle.select(source)
+            turtle.transferTo(target)
+
+            if turtle.getItemCount(source) == 0 then
+              break
+            end
+          end
+        end
+      end
+    end
+  end
+
+  turtle.select(previousSlot)
+end
+
+function inventory.cleanup()
   inventory.dropTrash()
+  inventory.compact()
+end
+
+function inventory.isFull()
+  inventory.cleanup()
 
   for slot = 1, 16 do
     if turtle.getItemCount(slot) == 0 then

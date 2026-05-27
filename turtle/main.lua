@@ -49,7 +49,7 @@ local function returnHome(reason)
 end
 
 local function ensureCanContinue()
-  inventory.dropTrash()
+  inventory.cleanup()
 
   if inventory.isFull() then
     return false, "inventory full"
@@ -124,61 +124,63 @@ local function initialize()
 end
 
 local function mineVisibleOreFromShaft()
-  while true do
-    local ok, reason = ensureCanContinue()
-    if not ok then
-      return false, reason
-    end
+  local ok, reason = ensureCanContinue()
+  if not ok then
+    return false, reason
+  end
 
-    ok, reason = goToCurrentShaft()
-    if not ok then
-      return false, reason
-    end
+  ok, reason = goToCurrentShaft()
+  if not ok then
+    return false, reason
+  end
 
-    local shaftPos = movement.position()
-    local blocks
-    blocks, reason = scanner.scan(config.scanRadius)
-    if not blocks then
-      return false, reason
-    end
+  local shaftPos = movement.position()
+  local blocks
+  blocks, reason = scanner.scan(config.scanRadius)
+  if not blocks then
+    return false, reason
+  end
 
-    local target = nil
-    local targetDistance = nil
-    for _, block in ipairs(blocks) do
-      if scanner.isOre(block) then
-        local distance = block.x * block.x + block.y * block.y + block.z * block.z
-        if not targetDistance or distance < targetDistance then
-          target = {
-            name = block.name,
-            family = ore.family(block.name),
-            x = shaftPos.x + block.x,
-            y = shaftPos.y + block.y,
-            z = shaftPos.z + block.z,
-          }
-          targetDistance = distance
-        end
-      end
-    end
-
-    if not target then
-      return true
-    end
-
-    ok, reason = ore.mineVeinAt(target)
-    if not ok then
-      return false, reason
-    end
-
-    ok, reason = movement.goTo(shaftPos.x, shaftPos.y, shaftPos.z)
-    if not ok then
-      return false, reason
-    end
-
-    ok, reason = movement.face("north")
-    if not ok then
-      return false, reason
+  local targets = {}
+  for _, block in ipairs(blocks) do
+    if scanner.isOre(block) then
+      table.insert(targets, {
+        name = block.name,
+        family = ore.family(block.name),
+        x = shaftPos.x + block.x,
+        y = shaftPos.y + block.y,
+        z = shaftPos.z + block.z,
+      })
     end
   end
+
+  local minedTargets = {}
+  for _, target in ipairs(targets) do
+    local targetKey = tostring(target.x) .. "," .. tostring(target.y) .. "," .. tostring(target.z)
+    if not minedTargets[targetKey] then
+      ok, reason = ensureCanContinue()
+      if not ok then
+        return false, reason
+      end
+
+      local minedVein
+      ok, minedVein = ore.mineVeinAt(target)
+      if not ok then
+        return false, minedVein
+      end
+
+      for minedKey in pairs(minedVein) do
+        minedTargets[minedKey] = true
+      end
+    end
+  end
+
+  ok, reason = movement.goTo(shaftPos.x, shaftPos.y, shaftPos.z)
+  if not ok then
+    return false, reason
+  end
+
+  return movement.face("north")
 end
 
 local detourDirections = {

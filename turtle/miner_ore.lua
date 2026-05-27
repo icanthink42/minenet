@@ -34,7 +34,7 @@ local function fuelNeededToReachHome()
 end
 
 local function ensureCanMineOre()
-  inventory.dropTrash()
+  inventory.cleanup()
 
   if inventory.isFull() then
     return false, "inventory full"
@@ -170,7 +170,12 @@ function ore.mineVeinAt(target)
     [key(target.x, target.y, target.z)] = true,
   }
 
-  return mineConnectedOre(targetFamily, visited)
+  ok, reason = mineConnectedOre(targetFamily, visited)
+  if not ok then
+    return false, reason
+  end
+
+  return true, visited
 end
 
 function ore.family(name)
