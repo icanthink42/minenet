@@ -48,73 +48,6 @@ local function returnHome(reason)
   print("Stopped at home")
 end
 
-local function tryDepositAroundHome()
-  for _ = 1, 4 do
-    local ok = inventory.depositNonFuel()
-    if ok then
-      return true
-    end
-
-    ok = movement.turnRight()
-    if not ok then
-      return false
-    end
-  end
-
-  movement.face("north")
-
-  if inventory.depositNonFuel(turtle.inspectUp, turtle.dropUp) then
-    return true
-  end
-
-  if inventory.depositNonFuel(turtle.inspectDown, turtle.dropDown) then
-    return true
-  end
-
-  return false
-end
-
-local function unloadAtHome()
-  print("Inventory full, returning home to unload")
-  local resume = movement.position()
-  fuel.ensureEmergency(homeFuelNeed(256))
-
-  local ok, reason = movement.goTo(0, 0, 0)
-  if not ok then
-    error("failed to return home: " .. tostring(reason))
-  end
-
-  movement.face("north")
-
-  if not tryDepositAroundHome() then
-    print("No chest with space next to home")
-    return false
-  end
-
-  movement.face("north")
-  if inventory.isFull() then
-    return false
-  end
-
-  ok, reason = movement.goTo(resume.x, resume.y, resume.z)
-  if not ok then
-    error("failed to resume after unload: " .. tostring(reason))
-  end
-
-  return movement.face(resume.facing)
-end
-
-local function handleCannotContinue(reason)
-  if reason == "inventory full" then
-    if unloadAtHome() then
-      return true
-    end
-  end
-
-  returnHome(reason)
-  return false
-end
-
 local function ensureCanContinue()
   inventory.cleanup()
 
@@ -345,14 +278,8 @@ local function run()
   while true do
     ok, reason = ensureCanContinue()
     if not ok then
-      if handleCannotContinue(reason) then
-        ok, reason = goToCurrentShaft()
-        if not ok then
-          error(reason)
-        end
-      else
-        return
-      end
+      returnHome(reason)
+      return
     end
 
     ok, reason = goToCurrentShaft()
@@ -363,27 +290,15 @@ local function run()
     if runState.direction() == "down" then
       ok, reason = mineVisibleOreFromShaft()
       if not ok then
-        if handleCannotContinue(reason) then
-          ok, reason = goToCurrentShaft()
-          if not ok then
-            error(reason)
-          end
-        else
-          return
-        end
+        returnHome(reason)
+        return
       end
     end
 
     ok, reason = ensureCanContinue()
     if not ok then
-      if handleCannotContinue(reason) then
-        ok, reason = goToCurrentShaft()
-        if not ok then
-          error(reason)
-        end
-      else
-        return
-      end
+      returnHome(reason)
+      return
     end
 
     ok, reason = advanceShaft()

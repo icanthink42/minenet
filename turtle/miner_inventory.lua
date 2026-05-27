@@ -1,5 +1,4 @@
 local inventory = {}
-local config = require("miner_config")
 
 local trashItems = {
   ["minecraft:stone"] = true,
@@ -135,83 +134,6 @@ function inventory.findMatching(items, minCount)
   end
 
   return nil
-end
-
-function inventory.hasNonFuel()
-  for slot = 1, 16 do
-    local detail = turtle.getItemDetail(slot)
-    if detail and not config.charcoalItems[detail.name] then
-      return true
-    end
-  end
-
-  return false
-end
-
-local function isChestLike(block)
-  if not block or type(block.name) ~= "string" then
-    return false
-  end
-
-  if block.name == "minecraft:chest"
-    or block.name == "minecraft:trapped_chest"
-    or block.name == "minecraft:barrel" then
-    return true
-  end
-
-  if block.name:find("chest") or block.name:find("barrel") then
-    return true
-  end
-
-  if type(block.tags) == "table" then
-    for tag, enabled in pairs(block.tags) do
-      if enabled
-        and type(tag) == "string"
-        and (tag:find("chest") or tag:find("barrel")) then
-        return true
-      end
-    end
-  end
-
-  return false
-end
-
-function inventory.depositNonFuel(inspectFn, dropFn)
-  inspectFn = inspectFn or turtle.inspect
-  dropFn = dropFn or turtle.drop
-
-  inventory.cleanup()
-
-  local exists, block = inspectFn()
-  if not exists or not isChestLike(block) then
-    return false, "no chest"
-  end
-
-  local depositedAny = false
-  local previousSlot = turtle.getSelectedSlot()
-
-  for slot = 1, 16 do
-    local detail = turtle.getItemDetail(slot)
-    if detail and not config.charcoalItems[detail.name] then
-      turtle.select(slot)
-      if dropFn() then
-        depositedAny = true
-      end
-    end
-  end
-
-  turtle.select(previousSlot)
-  inventory.cleanup()
-
-  if not depositedAny then
-    return false, "no chest or chest full"
-  end
-
-  if inventory.hasNonFuel() then
-    return false, "chest full"
-  end
-
-  return true
 end
 
 function inventory.trashItems()
