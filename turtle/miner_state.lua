@@ -6,6 +6,9 @@ local state = {
   column = 0,
   direction = "down",
   initialized = false,
+  bedrockY = nil,
+  offsetX = 0,
+  offsetZ = 0,
 }
 
 local function serialize(value)
@@ -13,11 +16,19 @@ local function serialize(value)
     return textutils.serialize(value)
   end
 
+  local bedrock = "nil"
+  if type(value.bedrockY) == "number" then
+    bedrock = tostring(value.bedrockY)
+  end
+
   return string.format(
-    "{column=%d,direction=%q,initialized=%s}",
+    "{column=%d,direction=%q,initialized=%s,bedrockY=%s,offsetX=%d,offsetZ=%d}",
     value.column,
     value.direction,
-    tostring(value.initialized)
+    tostring(value.initialized),
+    bedrock,
+    value.offsetX or 0,
+    value.offsetZ or 0
   )
 end
 
@@ -44,6 +55,9 @@ local function valid(value)
     and type(value.column) == "number"
     and (value.direction == "down" or value.direction == "up")
     and (value.initialized == nil or type(value.initialized) == "boolean")
+    and (value.bedrockY == nil or type(value.bedrockY) == "number")
+    and (value.offsetX == nil or type(value.offsetX) == "number")
+    and (value.offsetZ == nil or type(value.offsetZ) == "number")
 end
 
 function minerState.save()
@@ -79,6 +93,9 @@ function minerState.load()
   state.column = loaded.column
   state.direction = loaded.direction
   state.initialized = loaded.initialized == true
+  state.bedrockY = loaded.bedrockY
+  state.offsetX = loaded.offsetX or 0
+  state.offsetZ = loaded.offsetZ or 0
   return true
 end
 
@@ -87,6 +104,9 @@ function minerState.get()
     column = state.column,
     direction = state.direction,
     initialized = state.initialized,
+    bedrockY = state.bedrockY,
+    offsetX = state.offsetX,
+    offsetZ = state.offsetZ,
   }
 end
 
@@ -98,8 +118,39 @@ function minerState.direction()
   return state.direction
 end
 
+function minerState.offsetX()
+  return state.offsetX
+end
+
+function minerState.offsetZ()
+  return state.offsetZ
+end
+
+function minerState.setOffset(x, z)
+  if type(x) ~= "number" or type(z) ~= "number" then
+    return false, "offset x and z must be numbers"
+  end
+
+  state.offsetX = x
+  state.offsetZ = z
+  return minerState.save()
+end
+
 function minerState.initialized()
   return state.initialized
+end
+
+function minerState.bedrockY()
+  return state.bedrockY
+end
+
+function minerState.setBedrockY(y)
+  if type(y) ~= "number" then
+    return false, "bedrock y must be a number"
+  end
+
+  state.bedrockY = y
+  return minerState.save()
 end
 
 function minerState.markInitialized()
@@ -123,6 +174,8 @@ end
 
 function minerState.advance()
   state.column = state.column + 1
+  state.offsetX = 0
+  state.offsetZ = 0
   if state.direction == "down" then
     state.direction = "up"
   else

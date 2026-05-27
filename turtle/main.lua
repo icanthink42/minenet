@@ -6,11 +6,11 @@ local ore = require("miner_ore")
 local runState = require("miner_state")
 
 local function shaftX()
-  return runState.column() * config.shaftSpacing()
+  return runState.column() * config.shaftSpacing() + runState.offsetX()
 end
 
 local function shaftZ()
-  return 0
+  return runState.offsetZ()
 end
 
 local function homeFuelNeed(extra)
@@ -20,6 +20,8 @@ end
 
 local function returnHome(reason)
   print("Returning home: " .. tostring(reason))
+  fuel.ensureEmergency(homeFuelNeed(256))
+
   local ok, moveReason = movement.goTo(0, 0, 0)
   if not ok then
     error("failed to return home: " .. tostring(moveReason))
@@ -50,12 +52,13 @@ end
 
 local function currentShaftY()
   local y = movement.position().y
-  if y > config.maxHeight then
-    return config.maxHeight
+  if y > 0 then
+    return 0
   end
 
-  if y < config.minHeight then
-    return config.minHeight
+  local bedrockY = runState.bedrockY()
+  if bedrockY and y < bedrockY then
+    return bedrockY
   end
 
   return y
@@ -87,7 +90,7 @@ local function initialize()
       return false, reason
     end
 
-    ok, reason = movement.goTo(shaftX(), config.maxHeight, shaftZ())
+    ok, reason = movement.goTo(shaftX(), 0, shaftZ())
     if not ok then
       return false, reason
     end
@@ -132,33 +135,81 @@ local function mineVisibleOreFromShaft()
   end
 end
 
+local detourDirections = {
+  { x = 1, z = 0 },
+  { x = -1, z = 0 },
+  { x = 0, z = 1 },
+  { x = 0, z = -1 },
+}
+
+local function detourVertical(verticalStep)
+  local current = movement.position()
+  local baseOffsetX = runState.offsetX()
+  local baseOffsetZ = runState.offsetZ()
+
+  local distance = 1
+  while true do
+    for _, dir in ipairs(detourDirections) do
+      local offsetX = baseOffsetX + dir.x * distance
+      local offsetZ = baseOffsetZ + dir.z * distance
+      local ok, reason = runState.setOffset(offsetX, offsetZ)
+      if not ok then
+        return false, reason
+      end
+
+      ok, reason = movement.tryGoTo(shaftX(), current.y + verticalStep, shaftZ())
+      if ok then
+        return true
+      end
+    end
+
+    distance = distance + 1
+    os.sleep(0.25)
+  end
+end
+
 local function advanceShaft()
   local direction = runState.direction()
   local y = movement.position().y
 
   if direction == "down" then
-    if y <= config.minHeight then
-      local ok, reason = runState.advance()
+    local ok, reason = movement.down()
+    if ok then
+      return true
+    end
+
+    if reason and reason:find("minecraft:bedrock") then
+      ok, reason = runState.setBedrockY(y)
       if not ok then
         return false, reason
       end
 
-      return movement.goTo(shaftX(), config.minHeight, shaftZ())
+      ok, reason = runState.advance()
+      if not ok then
+        return false, reason
+      end
+
+      return true
     end
 
-    return movement.down()
+    return detourVertical(-1)
   end
 
-  if y >= config.maxHeight then
+  if y >= 0 then
     local ok, reason = runState.advance()
     if not ok then
       return false, reason
     end
 
-    return movement.goTo(shaftX(), config.maxHeight, shaftZ())
+    return movement.goTo(shaftX(), y, shaftZ())
   end
 
-  return movement.up()
+  local ok, reason = movement.up()
+  if ok then
+    return true
+  end
+
+  return detourVertical(1)
 end
 
 local function run()

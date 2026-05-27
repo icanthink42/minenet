@@ -19,13 +19,13 @@ function fuel.shouldReturn()
   return fuel.charcoalCount() <= config.charcoalReserve
 end
 
-function fuel.ensure(level)
+local function ensureWithReserve(level, reserve)
   if isUnlimited() then
     return true
   end
 
   while turtle.getFuelLevel() < level do
-    if fuel.charcoalCount() <= config.charcoalReserve then
+    if fuel.charcoalCount() <= reserve then
       return false, "charcoal reserve reached"
     end
 
@@ -45,6 +45,14 @@ function fuel.ensure(level)
   end
 
   return true
+end
+
+function fuel.ensure(level)
+  return ensureWithReserve(level, config.charcoalReserve)
+end
+
+function fuel.ensureEmergency(level)
+  return ensureWithReserve(level, 0)
 end
 
 function fuel.refuelFromCharcoal()

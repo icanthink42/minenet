@@ -1,6 +1,7 @@
 local movement = {}
 local state = require("movement_state")
 local mining = require("movement_mining")
+local pathfinder = require("movement_pathfinder")
 
 local function move(turtleFn, updateState, inspectFn, digFn)
   for _ = 1, 16 do
@@ -160,74 +161,101 @@ function movement.face(facing)
   return true
 end
 
-function movement.goTo(x, y, z)
+local function currentPosition()
+  return {
+    x = state.x(),
+    y = state.y(),
+    z = state.z(),
+  }
+end
+
+local function stepTo(nextNode)
+  local pos = currentPosition()
+  local dx = nextNode.x - pos.x
+  local dy = nextNode.y - pos.y
+  local dz = nextNode.z - pos.z
+
+  if dy == 1 and dx == 0 and dz == 0 then
+    return movement.up()
+  end
+
+  if dy == -1 and dx == 0 and dz == 0 then
+    return movement.down()
+  end
+
+  local ok, reason
+  if dx == 1 and dy == 0 and dz == 0 then
+    ok, reason = movement.face("east")
+  elseif dx == -1 and dy == 0 and dz == 0 then
+    ok, reason = movement.face("west")
+  elseif dz == 1 and dx == 0 and dy == 0 then
+    ok, reason = movement.face("south")
+  elseif dz == -1 and dx == 0 and dy == 0 then
+    ok, reason = movement.face("north")
+  else
+    return false, "path step is not adjacent"
+  end
+
+  if not ok then
+    return false, reason
+  end
+
+  return movement.forward()
+end
+
+local function navigateTo(x, y, z, keepTrying)
   if type(x) ~= "number" or type(y) ~= "number" or type(z) ~= "number" then
     return false, "goTo expects numeric x, y, z"
   end
 
-  while state.y() < y do
-    local ok, reason = movement.up()
-    if not ok then
-      return false, reason
+  local target = { x = x, y = y, z = z }
+  local blocked = {}
+  local padding = 2
+  local failedSteps = 0
+
+  while true do
+    local start = currentPosition()
+    if start.x == x and start.y == y and start.z == z then
+      return true
+    end
+
+    if not keepTrying and blocked[pathfinder.key(x, y, z)] then
+      return false, "target blocked"
+    end
+
+    local path = pathfinder.findPath(start, target, blocked, padding)
+    if not path then
+      if not keepTrying and padding >= 12 then
+        return false, "no route found"
+      end
+
+      padding = padding + 2
+      os.sleep(0.25)
+    else
+      for _, nextNode in ipairs(path) do
+        local ok = stepTo(nextNode)
+        if not ok then
+          failedSteps = failedSteps + 1
+          blocked[pathfinder.key(nextNode.x, nextNode.y, nextNode.z)] = true
+          padding = math.max(padding, 4)
+          if not keepTrying and failedSteps >= 8 then
+            return false, "route blocked"
+          end
+
+          os.sleep(0.25)
+          break
+        end
+      end
     end
   end
+end
 
-  while state.y() > y do
-    local ok, reason = movement.down()
-    if not ok then
-      return false, reason
-    end
-  end
+function movement.tryGoTo(x, y, z)
+  return navigateTo(x, y, z, false)
+end
 
-  while state.x() < x do
-    local ok, reason = movement.face("east")
-    if not ok then
-      return false, reason
-    end
-
-    ok, reason = movement.forward()
-    if not ok then
-      return false, reason
-    end
-  end
-
-  while state.x() > x do
-    local ok, reason = movement.face("west")
-    if not ok then
-      return false, reason
-    end
-
-    ok, reason = movement.forward()
-    if not ok then
-      return false, reason
-    end
-  end
-
-  while state.z() < z do
-    local ok, reason = movement.face("south")
-    if not ok then
-      return false, reason
-    end
-
-    ok, reason = movement.forward()
-    if not ok then
-      return false, reason
-    end
-  end
-
-  while state.z() > z do
-    local ok, reason = movement.face("north")
-    if not ok then
-      return false, reason
-    end
-
-    ok, reason = movement.forward()
-    if not ok then
-      return false, reason
-    end
-  end
-
-  return true
+function movement.goTo(x, y, z)
+  return navigateTo(x, y, z, true)
 end
 
 state.load()

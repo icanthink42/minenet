@@ -1,7 +1,5 @@
 local config = {}
 
-config.maxHeight = 20
-config.minHeight = -60
 config.scanRadius = 8
 config.charcoalReserve = 16
 config.minFuelLevel = 128

@@ -11,6 +11,7 @@ local files = {
   "miner_state.lua",
   "movement.lua",
   "movement_mining.lua",
+  "movement_pathfinder.lua",
   "movement_state.lua",
 }
 
