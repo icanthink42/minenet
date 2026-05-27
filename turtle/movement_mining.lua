@@ -67,6 +67,10 @@ local function isOre(block)
   return false
 end
 
+function mining.isOre(block)
+  return isOre(block)
+end
+
 function mining.canMine(block)
   return allowedBlocks[block.name] or isOre(block)
 end
