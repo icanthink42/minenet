@@ -7,8 +7,8 @@ local state = {
   direction = "down",
   initialized = false,
   bedrockY = nil,
-  offsetX = 0,
-  offsetZ = 0,
+  detourX = 0,
+  detourZ = 0,
 }
 
 local function serialize(value)
@@ -22,13 +22,13 @@ local function serialize(value)
   end
 
   return string.format(
-    "{column=%d,direction=%q,initialized=%s,bedrockY=%s,offsetX=%d,offsetZ=%d}",
+    "{column=%d,direction=%q,initialized=%s,bedrockY=%s,detourX=%d,detourZ=%d}",
     value.column,
     value.direction,
     tostring(value.initialized),
     bedrock,
-    value.offsetX or 0,
-    value.offsetZ or 0
+    value.detourX or value.offsetX or 0,
+    value.detourZ or value.offsetZ or 0
   )
 end
 
@@ -58,6 +58,8 @@ local function valid(value)
     and (value.bedrockY == nil or type(value.bedrockY) == "number")
     and (value.offsetX == nil or type(value.offsetX) == "number")
     and (value.offsetZ == nil or type(value.offsetZ) == "number")
+    and (value.detourX == nil or type(value.detourX) == "number")
+    and (value.detourZ == nil or type(value.detourZ) == "number")
 end
 
 function minerState.save()
@@ -94,8 +96,8 @@ function minerState.load()
   state.direction = loaded.direction
   state.initialized = loaded.initialized == true
   state.bedrockY = loaded.bedrockY
-  state.offsetX = loaded.offsetX or 0
-  state.offsetZ = loaded.offsetZ or 0
+  state.detourX = loaded.detourX or loaded.offsetX or 0
+  state.detourZ = loaded.detourZ or loaded.offsetZ or 0
   return true
 end
 
@@ -105,8 +107,8 @@ function minerState.get()
     direction = state.direction,
     initialized = state.initialized,
     bedrockY = state.bedrockY,
-    offsetX = state.offsetX,
-    offsetZ = state.offsetZ,
+    detourX = state.detourX,
+    detourZ = state.detourZ,
   }
 end
 
@@ -118,22 +120,26 @@ function minerState.direction()
   return state.direction
 end
 
-function minerState.offsetX()
-  return state.offsetX
+function minerState.detourX()
+  return state.detourX
 end
 
-function minerState.offsetZ()
-  return state.offsetZ
+function minerState.detourZ()
+  return state.detourZ
 end
 
-function minerState.setOffset(x, z)
+function minerState.setDetour(x, z)
   if type(x) ~= "number" or type(z) ~= "number" then
-    return false, "offset x and z must be numbers"
+    return false, "detour x and z must be numbers"
   end
 
-  state.offsetX = x
-  state.offsetZ = z
+  state.detourX = x
+  state.detourZ = z
   return minerState.save()
+end
+
+function minerState.clearDetour()
+  return minerState.setDetour(0, 0)
 end
 
 function minerState.initialized()
@@ -174,8 +180,8 @@ end
 
 function minerState.advance()
   state.column = state.column + 1
-  state.offsetX = 0
-  state.offsetZ = 0
+  state.detourX = 0
+  state.detourZ = 0
   if state.direction == "down" then
     state.direction = "up"
   else

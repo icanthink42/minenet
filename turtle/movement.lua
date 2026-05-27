@@ -103,6 +103,18 @@ function movement.down()
   end, turtle.inspectDown, turtle.digDown)
 end
 
+function movement.digForward()
+  return mining.clear(turtle.inspect, turtle.dig)
+end
+
+function movement.digUp()
+  return mining.clear(turtle.inspectUp, turtle.digUp)
+end
+
+function movement.digDown()
+  return mining.clear(turtle.inspectDown, turtle.digDown)
+end
+
 function movement.forwardWithoutMining()
   return move(turtle.forward, function()
     state.moveHorizontal(1)

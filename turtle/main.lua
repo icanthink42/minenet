@@ -5,12 +5,28 @@ local movement = require("movement")
 local ore = require("miner_ore")
 local runState = require("miner_state")
 
+local function baseShaftX()
+  return runState.column() * config.shaftSpacing()
+end
+
+local function baseShaftZ()
+  return 0
+end
+
+local function currentColumnX()
+  return baseShaftX() + runState.detourX()
+end
+
+local function currentColumnZ()
+  return baseShaftZ() + runState.detourZ()
+end
+
 local function shaftX()
-  return runState.column() * config.shaftSpacing() + runState.offsetX()
+  return baseShaftX()
 end
 
 local function shaftZ()
-  return runState.offsetZ()
+  return baseShaftZ()
 end
 
 local function homeFuelNeed(extra)
@@ -144,20 +160,18 @@ local detourDirections = {
 
 local function detourVertical(verticalStep)
   local current = movement.position()
-  local baseOffsetX = runState.offsetX()
-  local baseOffsetZ = runState.offsetZ()
 
   local distance = 1
   while true do
     for _, dir in ipairs(detourDirections) do
-      local offsetX = baseOffsetX + dir.x * distance
-      local offsetZ = baseOffsetZ + dir.z * distance
-      local ok, reason = runState.setOffset(offsetX, offsetZ)
+      local detourX = runState.detourX() + dir.x * distance
+      local detourZ = runState.detourZ() + dir.z * distance
+      local ok, reason = runState.setDetour(detourX, detourZ)
       if not ok then
         return false, reason
       end
 
-      ok, reason = movement.tryGoTo(shaftX(), current.y + verticalStep, shaftZ())
+      ok, reason = movement.tryGoTo(currentColumnX(), current.y + verticalStep, currentColumnZ())
       if ok then
         return true
       end
@@ -179,6 +193,16 @@ local function advanceShaft()
     end
 
     if reason and reason:find("minecraft:bedrock") then
+      ok, reason = movement.goTo(shaftX(), y, shaftZ())
+      if not ok then
+        return false, reason
+      end
+
+      ok, reason = runState.clearDetour()
+      if not ok then
+        return false, reason
+      end
+
       ok, reason = runState.setBedrockY(y)
       if not ok then
         return false, reason
