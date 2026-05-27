@@ -1,6 +1,6 @@
 local config = {}
 
-config.maxHeight = 50
+config.maxHeight = 20
 config.minHeight = -60
 config.scanRadius = 8
 config.charcoalReserve = 16

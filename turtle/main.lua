@@ -30,6 +30,8 @@ local function returnHome(reason)
 end
 
 local function ensureCanContinue()
+  inventory.dropTrash()
+
   if inventory.isFull() then
     return false, "inventory full"
   end
