@@ -94,4 +94,14 @@ function chest.summary(inventory)
   return table.concat(lines, "\n")
 end
 
+function chest.itemCount(inventory)
+  local total = 0
+
+  for _, item in pairs(inventory.list()) do
+    total = total + item.count
+  end
+
+  return total
+end
+
 return chest

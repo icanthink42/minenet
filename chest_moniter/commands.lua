@@ -11,6 +11,16 @@ local function isNotifiedPlayer(username, notifyPlayers)
 end
 
 function commands.handle(username, message, context)
+  if message:match("^!all%s*$") then
+    if not isNotifiedPlayer(username, context.notifyPlayers) then
+      context.notifier.messagePlayer(username, "You are not on the notify list.")
+      return true
+    end
+
+    context.notifier.messagePlayer(username, context.infoLine())
+    return true
+  end
+
   local requestedId = message:match("^!info%s+(%d+)%s*$")
   if not requestedId then
     return false

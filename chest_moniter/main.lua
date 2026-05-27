@@ -15,6 +15,7 @@ if not notifier.chatBox() then
 end
 
 local currentSnapshot = chest.snapshot(inventory)
+local lastToastTime = 0
 
 local function refreshInventory()
   local found, name = chest.find()
@@ -28,6 +29,12 @@ local function refreshInventory()
 end
 
 local function notifyChanged()
+  local now = os.epoch("utc") / 1000
+  if now - lastToastTime < config.toastCooldown then
+    return
+  end
+
+  lastToastTime = now
   local title = "Chest " .. computerId
   local message = "New resources in chest " .. computerId
   notifier.toastAll(message, title)
@@ -65,6 +72,16 @@ local function listenForCommands()
       end
 
       return "Chest " .. computerId .. " contents:\n" .. chest.summary(inventory)
+    end,
+    infoLine = function()
+      if not inventory then
+        local ok = refreshInventory()
+        if not ok then
+          return "Chest " .. computerId .. ": disconnected"
+        end
+      end
+
+      return "Chest " .. computerId .. ": " .. chest.itemCount(inventory) .. " items"
     end,
   }
 
