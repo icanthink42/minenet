@@ -3,6 +3,7 @@ local fuel = require("miner_fuel")
 local inventory = require("miner_inventory")
 local movement = require("movement")
 local ore = require("miner_ore")
+local scanner = require("miner_scanner")
 local runState = require("miner_state")
 
 local function baseShaftX()
@@ -134,19 +135,48 @@ local function mineVisibleOreFromShaft()
       return false, reason
     end
 
-    local mined
-    ok, mined = ore.mineNearestGroup()
-    if not ok then
-      return false, mined
+    local shaftPos = movement.position()
+    local blocks
+    blocks, reason = scanner.scan(config.scanRadius)
+    if not blocks then
+      return false, reason
     end
 
-    ok, reason = goToCurrentShaft()
+    local target = nil
+    local targetDistance = nil
+    for _, block in ipairs(blocks) do
+      if scanner.isOre(block) then
+        local distance = block.x * block.x + block.y * block.y + block.z * block.z
+        if not targetDistance or distance < targetDistance then
+          target = {
+            name = block.name,
+            family = ore.family(block.name),
+            x = shaftPos.x + block.x,
+            y = shaftPos.y + block.y,
+            z = shaftPos.z + block.z,
+          }
+          targetDistance = distance
+        end
+      end
+    end
+
+    if not target then
+      return true
+    end
+
+    ok, reason = ore.mineVeinAt(target)
     if not ok then
       return false, reason
     end
 
-    if not mined then
-      return true
+    ok, reason = movement.goTo(shaftPos.x, shaftPos.y, shaftPos.z)
+    if not ok then
+      return false, reason
+    end
+
+    ok, reason = movement.face("north")
+    if not ok then
+      return false, reason
     end
   end
 end
@@ -255,10 +285,12 @@ local function run()
       error(reason)
     end
 
-    ok, reason = mineVisibleOreFromShaft()
-    if not ok then
-      returnHome(reason)
-      return
+    if runState.direction() == "down" then
+      ok, reason = mineVisibleOreFromShaft()
+      if not ok then
+        returnHome(reason)
+        return
+      end
     end
 
     ok, reason = ensureCanContinue()

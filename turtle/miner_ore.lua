@@ -1,18 +1,17 @@
-local config = require("miner_config")
 local fuel = require("miner_fuel")
 local inventory = require("miner_inventory")
 local movement = require("movement")
-local scanner = require("miner_scanner")
+local mining = require("movement_mining")
 
 local ore = {}
 
 local neighborDirs = {
-  { x = 1, y = 0, z = 0, facing = "east" },
-  { x = -1, y = 0, z = 0, facing = "west" },
-  { x = 0, y = 0, z = 1, facing = "south" },
-  { x = 0, y = 0, z = -1, facing = "north" },
-  { x = 0, y = 1, z = 0, vertical = "up" },
-  { x = 0, y = -1, z = 0, vertical = "down" },
+  { x = 1, y = 0, z = 0, facing = "east", inspect = turtle.inspect, dig = movement.digForward },
+  { x = -1, y = 0, z = 0, facing = "west", inspect = turtle.inspect, dig = movement.digForward },
+  { x = 0, y = 0, z = 1, facing = "south", inspect = turtle.inspect, dig = movement.digForward },
+  { x = 0, y = 0, z = -1, facing = "north", inspect = turtle.inspect, dig = movement.digForward },
+  { x = 0, y = 1, z = 0, inspect = turtle.inspectUp, dig = movement.digUp },
+  { x = 0, y = -1, z = 0, inspect = turtle.inspectDown, dig = movement.digDown },
 }
 
 local function key(x, y, z)
@@ -48,155 +47,134 @@ local function ensureCanMineOre()
   return fuel.ensure(fuelNeededToReachHome())
 end
 
-local function absoluteBlock(block)
-  local pos = movement.position()
-  return {
-    name = block.name,
-    x = pos.x + block.x,
-    y = pos.y + block.y,
-    z = pos.z + block.z,
-  }
-end
-
-local function nearestKnownOre(targetFamily, known, mined)
-  local pos = movement.position()
-  local best = nil
-  local bestDistance = nil
-
-  for blockKey, block in pairs(known) do
-    if not mined[blockKey] and oreFamily(block.name) == targetFamily then
-      local dx = block.x - pos.x
-      local dy = block.y - pos.y
-      local dz = block.z - pos.z
-      local distance = dx * dx + dy * dy + dz * dz
-
-      if not bestDistance or distance < bestDistance then
-        best = block
-        bestDistance = distance
-      end
+local function inspectDirection(dir)
+  if dir.facing then
+    local ok, reason = movement.face(dir.facing)
+    if not ok then
+      return false, nil, reason
     end
   end
 
-  return best
+  local exists, block = dir.inspect()
+  return exists, block
 end
 
-local function rememberVisibleOre(targetFamily, known, mined)
-  movement.face("north")
-
-  local blocks, reason = scanner.scan(config.scanRadius)
-  if not blocks then
-    return false, reason
-  end
-
-  for _, block in ipairs(blocks) do
-    if oreFamily(block.name) == targetFamily then
-      local absolute = absoluteBlock(block)
-      local blockKey = key(absolute.x, absolute.y, absolute.z)
-      if not mined[blockKey] then
-        known[blockKey] = absolute
-      end
+local function digDirection(dir)
+  if dir.facing then
+    local ok, reason = movement.face(dir.facing)
+    if not ok then
+      return false, reason
     end
   end
 
-  return true
+  return dir.dig()
 end
 
-local function digNeighborOre(targetFamily, known, mined)
-  local pos = movement.position()
-  local found = false
-
-  for _, dir in ipairs(neighborDirs) do
-    local neighborKey = key(pos.x + dir.x, pos.y + dir.y, pos.z + dir.z)
-    local block = known[neighborKey]
-
-    if block and oreFamily(block.name) == targetFamily and not mined[neighborKey] then
-      local ok, reason
-      if dir.vertical == "up" then
-        ok, reason = movement.digUp()
-      elseif dir.vertical == "down" then
-        ok, reason = movement.digDown()
-      else
-        ok, reason = movement.face(dir.facing)
-        if ok then
-          ok, reason = movement.digForward()
-        end
-      end
-
-      if not ok then
-        return false, reason
-      end
-
-      mined[neighborKey] = true
-      known[neighborKey] = nil
-      found = true
-    end
+local function moveIntoDirection(dir)
+  if dir.y == 1 then
+    return movement.up()
   end
 
-  return true, found
-end
-
-function ore.mineNearestGroup()
-  movement.face("north")
-
-  local blocks, reason = scanner.scan(config.scanRadius)
-  if not blocks then
-    return false, reason
+  if dir.y == -1 then
+    return movement.down()
   end
 
-  local first = scanner.nearestOre(blocks)
-  if not first then
-    return true, false
-  end
-
-  local targetFamily = oreFamily(first.name)
-  local known = {}
-  local mined = {}
-  local minedCount = 0
-
-  local ok
-  ok, reason = rememberVisibleOre(targetFamily, known, mined)
+  local ok, reason = movement.face(dir.facing)
   if not ok then
     return false, reason
   end
 
-  while minedCount < 512 do
-    ok, reason = ensureCanMineOre()
-    if not ok then
-      return false, reason
-    end
+  return movement.forward()
+end
 
-    ok, reason = rememberVisibleOre(targetFamily, known, mined)
-    if not ok then
-      return false, reason
-    end
+local function findAdjacentOre(targetFamily, visited)
+  local pos = movement.position()
 
-    local dugAny
-    ok, dugAny = digNeighborOre(targetFamily, known, mined)
-    if not ok then
-      return false, dugAny
-    end
+  for _, dir in ipairs(neighborDirs) do
+    local x = pos.x + dir.x
+    local y = pos.y + dir.y
+    local z = pos.z + dir.z
+    local blockKey = key(x, y, z)
 
-    if dugAny then
-      minedCount = minedCount + 1
-    else
-      local nextOre = nearestKnownOre(targetFamily, known, mined)
-      if not nextOre then
-        return true, minedCount > 0
+    if not visited[blockKey] then
+      local exists, block, reason = inspectDirection(dir)
+      if reason then
+        return nil, reason
       end
 
-      ok, reason = movement.goTo(nextOre.x, nextOre.y, nextOre.z)
-      if not ok then
-        return false, reason
+      if exists and mining.isOre(block) and oreFamily(block.name) == targetFamily then
+        return {
+          x = x,
+          y = y,
+          z = z,
+          dir = dir,
+        }
       end
-
-      local oreKey = key(nextOre.x, nextOre.y, nextOre.z)
-      mined[oreKey] = true
-      known[oreKey] = nil
-      minedCount = minedCount + 1
     end
   end
 
-  return false, "ore group exceeded mining limit"
+  return nil
+end
+
+local function mineConnectedOre(targetFamily, visited)
+  local origin = movement.position()
+
+  while true do
+    local ok, reason = ensureCanMineOre()
+    if not ok then
+      return false, reason
+    end
+
+    local nextOre
+    nextOre, reason = findAdjacentOre(targetFamily, visited)
+    if reason then
+      return false, reason
+    end
+
+    if not nextOre then
+      return true
+    end
+
+    ok, reason = digDirection(nextOre.dir)
+    if not ok then
+      return false, reason
+    end
+
+    visited[key(nextOre.x, nextOre.y, nextOre.z)] = true
+
+    ok, reason = moveIntoDirection(nextOre.dir)
+    if not ok then
+      return false, reason
+    end
+
+    ok, reason = mineConnectedOre(targetFamily, visited)
+    if not ok then
+      return false, reason
+    end
+
+    ok, reason = movement.goTo(origin.x, origin.y, origin.z)
+    if not ok then
+      return false, reason
+    end
+  end
+end
+
+function ore.mineVeinAt(target)
+  local ok, reason = movement.goTo(target.x, target.y, target.z)
+  if not ok then
+    return false, reason
+  end
+
+  local targetFamily = oreFamily(target.name)
+  local visited = {
+    [key(target.x, target.y, target.z)] = true,
+  }
+
+  return mineConnectedOre(targetFamily, visited)
+end
+
+function ore.family(name)
+  return oreFamily(name)
 end
 
 return ore

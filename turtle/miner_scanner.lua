@@ -37,6 +37,10 @@ function scanner.scan(radius)
   return nil, "geo scanner scan failed after retries"
 end
 
+function scanner.isOre(block)
+  return mining.isOre(block)
+end
+
 function scanner.nearestOre(blocks)
   local best = nil
   local bestDistance = nil
