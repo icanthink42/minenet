@@ -48,6 +48,13 @@ local trashItems = {
   ["minecraft:soul_sand"] = true,
   ["minecraft:soul_soil"] = true,
   ["minecraft:end_stone"] = true,
+  ["create:limestone"] = true,
+  ["create:scoria"] = true,
+  ["create:scorchia"] = true,
+  ["create:asurine"] = true,
+  ["create:crimsite"] = true,
+  ["create:ochrum"] = true,
+  ["create:veridium"] = true,
 }
 
 function inventory.dropTrash()
