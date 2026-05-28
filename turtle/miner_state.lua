@@ -7,6 +7,7 @@ local state = {
   direction = "down",
   initialized = false,
   bedrockY = nil,
+  bottomY = nil,
   detourX = 0,
   detourZ = 0,
 }
@@ -21,12 +22,18 @@ local function serialize(value)
     bedrock = tostring(value.bedrockY)
   end
 
+  local bottom = "nil"
+  if type(value.bottomY) == "number" then
+    bottom = tostring(value.bottomY)
+  end
+
   return string.format(
-    "{column=%d,direction=%q,initialized=%s,bedrockY=%s,detourX=%d,detourZ=%d}",
+    "{column=%d,direction=%q,initialized=%s,bedrockY=%s,bottomY=%s,detourX=%d,detourZ=%d}",
     value.column,
     value.direction,
     tostring(value.initialized),
     bedrock,
+    bottom,
     value.detourX or value.offsetX or 0,
     value.detourZ or value.offsetZ or 0
   )
@@ -56,6 +63,7 @@ local function valid(value)
     and (value.direction == "down" or value.direction == "up")
     and (value.initialized == nil or type(value.initialized) == "boolean")
     and (value.bedrockY == nil or type(value.bedrockY) == "number")
+    and (value.bottomY == nil or type(value.bottomY) == "number")
     and (value.offsetX == nil or type(value.offsetX) == "number")
     and (value.offsetZ == nil or type(value.offsetZ) == "number")
     and (value.detourX == nil or type(value.detourX) == "number")
@@ -96,6 +104,7 @@ function minerState.load()
   state.direction = loaded.direction
   state.initialized = loaded.initialized == true
   state.bedrockY = loaded.bedrockY
+  state.bottomY = loaded.bottomY
   state.detourX = loaded.detourX or loaded.offsetX or 0
   state.detourZ = loaded.detourZ or loaded.offsetZ or 0
   return true
@@ -107,6 +116,7 @@ function minerState.get()
     direction = state.direction,
     initialized = state.initialized,
     bedrockY = state.bedrockY,
+    bottomY = state.bottomY,
     detourX = state.detourX,
     detourZ = state.detourZ,
   }
@@ -150,6 +160,10 @@ function minerState.bedrockY()
   return state.bedrockY
 end
 
+function minerState.bottomY()
+  return state.bottomY
+end
+
 function minerState.setBedrockY(y)
   if type(y) ~= "number" then
     return false, "bedrock y must be a number"
@@ -159,8 +173,28 @@ function minerState.setBedrockY(y)
   return minerState.save()
 end
 
+function minerState.setBottomY(y)
+  if type(y) ~= "number" then
+    return false, "bottom y must be a number"
+  end
+
+  state.bottomY = y
+  return minerState.save()
+end
+
 function minerState.markInitialized()
   state.initialized = true
+  return minerState.save()
+end
+
+function minerState.reset()
+  state.column = 0
+  state.direction = "down"
+  state.initialized = false
+  state.bedrockY = nil
+  state.bottomY = nil
+  state.detourX = 0
+  state.detourZ = 0
   return minerState.save()
 end
 
