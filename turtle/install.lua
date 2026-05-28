@@ -15,6 +15,7 @@ local files = {
   "movement_mining.lua",
   "movement_pathfinder.lua",
   "movement_state.lua",
+  "recall.lua",
   "modes/normal/config.lua",
   "modes/netherite/config.lua",
   "modes/diamond/config.lua",
