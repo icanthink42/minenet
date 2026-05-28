@@ -8,6 +8,90 @@ local recall = require("recall")
 local scanner = require("miner_scanner")
 local runState = require("miner_state")
 
+local homeStateFile = ".home_state"
+
+local function snapshotHome()
+  local dirs = { "north", "east", "south", "west" }
+  local blocks = {}
+
+  for _, dir in ipairs(dirs) do
+    local ok, reason = movement.face(dir)
+    if not ok then
+      return nil, "could not face " .. dir .. ": " .. tostring(reason)
+    end
+    local exists, block = turtle.inspect()
+    blocks[dir] = exists and block.name or "air"
+  end
+
+  local ok, reason = movement.face("north")
+  if not ok then
+    return nil, "could not restore facing: " .. tostring(reason)
+  end
+
+  local exists, block
+  exists, block = turtle.inspectUp()
+  blocks.up = exists and block.name or "air"
+
+  exists, block = turtle.inspectDown()
+  blocks.down = exists and block.name or "air"
+
+  return blocks
+end
+
+local function homeStateString(snapshot)
+  local parts = {}
+  for _, dir in ipairs({ "north", "east", "south", "west", "up", "down" }) do
+    parts[#parts + 1] = dir .. "=" .. (snapshot[dir] or "air")
+  end
+  return table.concat(parts, ";")
+end
+
+local function saveHomeState(snapshot)
+  local handle, err = fs.open(homeStateFile, "w")
+  if not handle then
+    return false, "failed to open home state file: " .. tostring(err)
+  end
+  handle.write(homeStateString(snapshot))
+  handle.close()
+  return true
+end
+
+local function loadSavedHomeState()
+  if not fs.exists(homeStateFile) then
+    return nil
+  end
+  local handle = fs.open(homeStateFile, "r")
+  if not handle then
+    return nil
+  end
+  local content = handle.readAll()
+  handle.close()
+  return content
+end
+
+local function checkAndUpdateHomeState()
+  local snapshot, err = snapshotHome()
+  if not snapshot then
+    return false, err
+  end
+
+  local current = homeStateString(snapshot)
+  local saved = loadSavedHomeState()
+
+  if not saved then
+    log.info("Validation: recording initial home state")
+    return saveHomeState(snapshot)
+  end
+
+  if current ~= saved then
+    log.warn("Validation: home state mismatch; expected: " .. saved .. " got: " .. current)
+    return false, "home state changed"
+  end
+
+  log.info("Validation: home state verified")
+  return true
+end
+
 local function baseShaftX()
   return runState.column() * config.shaftSpacing()
 end
@@ -209,6 +293,11 @@ local function initialize()
   if not runState.initialized() then
     log.info("First run setup: moving to home column")
 
+    if config.validation and fs.exists(homeStateFile) then
+      fs.delete(homeStateFile)
+      log.info("Validation: cleared stale home state for fresh run")
+    end
+
     ok, reason = ensureCanContinue()
     if not ok then
       return false, reason
@@ -305,6 +394,44 @@ local function mineVisibleOreFromShaft()
     minedTargets[targetKey] = true
     for minedKey in pairs(minedVein) do
       minedTargets[minedKey] = true
+    end
+
+    if config.validation then
+      fuel.ensureEmergency(homeFuelNeed(256))
+
+      ok, reason = movement.goTo(0, 0, 0)
+      if not ok then
+        return false, reason
+      end
+
+      ok, reason = movement.face("north")
+      if not ok then
+        return false, reason
+      end
+
+      if not tryDepositAroundHome() then
+        log.warn("Validation: deposit at home failed")
+      end
+
+      ok, reason = movement.face("north")
+      if not ok then
+        return false, reason
+      end
+
+      ok, reason = checkAndUpdateHomeState()
+      if not ok then
+        return false, reason
+      end
+
+      ok, reason = movement.goTo(shaftPos.x, shaftPos.y, shaftPos.z)
+      if not ok then
+        return false, reason
+      end
+
+      ok, reason = movement.face("north")
+      if not ok then
+        return false, reason
+      end
     end
   end
 

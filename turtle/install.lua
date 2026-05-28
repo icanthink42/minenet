@@ -19,6 +19,7 @@ local files = {
   "modes/normal/config.lua",
   "modes/netherite/config.lua",
   "modes/diamond/config.lua",
+  "modes/validation/config.lua",
 }
 
 local function trim(value)
