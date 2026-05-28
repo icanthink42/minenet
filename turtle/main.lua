@@ -263,25 +263,41 @@ local function mineVisibleOreFromShaft()
   log.info("Scan found " .. #targets .. " ore target(s)")
 
   local minedTargets = {}
-  for _, target in ipairs(targets) do
-    local targetKey = tostring(target.x) .. "," .. tostring(target.y) .. "," .. tostring(target.z)
-    if not minedTargets[targetKey] then
-      ok, reason = ensureCanContinue()
-      if not ok then
-        return false, reason
+  while true do
+    local pos = movement.position()
+    local bestIdx = nil
+    local bestDist = nil
+    for i, target in ipairs(targets) do
+      local targetKey = tostring(target.x) .. "," .. tostring(target.y) .. "," .. tostring(target.z)
+      if not minedTargets[targetKey] then
+        local dist = math.abs(target.x - pos.x) + math.abs(target.y - pos.y) + math.abs(target.z - pos.z)
+        if not bestDist or dist < bestDist then
+          bestDist = dist
+          bestIdx = i
+        end
       end
+    end
 
-      local minedVein
-      log.info("Mining vein target " .. target.name .. " at x=" .. target.x .. " y=" .. target.y .. " z=" .. target.z)
-      ok, minedVein = ore.mineVeinAt(target)
-      if not ok then
-        log.warn("Vein mining failed: " .. tostring(minedVein))
-        return false, minedVein
-      end
+    if not bestIdx then
+      break
+    end
 
-      for minedKey in pairs(minedVein) do
-        minedTargets[minedKey] = true
-      end
+    local target = targets[bestIdx]
+    ok, reason = ensureCanContinue()
+    if not ok then
+      return false, reason
+    end
+
+    local minedVein
+    log.info("Mining vein target " .. target.name .. " at x=" .. target.x .. " y=" .. target.y .. " z=" .. target.z)
+    ok, minedVein = ore.mineVeinAt(target)
+    if not ok then
+      log.warn("Vein mining failed: " .. tostring(minedVein))
+      return false, minedVein
+    end
+
+    for minedKey in pairs(minedVein) do
+      minedTargets[minedKey] = true
     end
   end
 
