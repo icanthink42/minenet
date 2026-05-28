@@ -17,22 +17,15 @@ local function post(level, message)
     return
   end
 
-  local line = textutils.serializeJSON({
-    message = tostring(message),
-    turtle_id = os.getComputerID(),
-  })
+  local line = string.format('{"message":%s,"turtle_id":%d}',
+    textutils.serializeJSON(tostring(message)),
+    os.getComputerID())
 
-  local body = textutils.serializeJSON({
-    streams = {{
-      stream = {
-        service = "turtle",
-        level = level,
-      },
-      values = {
-        { tostring(os.epoch("utc") * 1000000), line },
-      },
-    }},
-  })
+  local timestamp = string.format("%.0f000000", os.epoch("utc"))
+
+  local body = string.format(
+    '{"streams":[{"stream":{"service":"turtle","level":"%s"},"values":[["%s",%s]]}]}',
+    level, timestamp, textutils.serializeJSON(line))
 
   local headers = { ["Content-Type"] = "application/json" }
 
