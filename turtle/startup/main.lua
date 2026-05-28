@@ -1,5 +1,5 @@
 while true do
-  local ok = shell.run("main")
+  local ok = shell.run("/main")
   if ok then
     break
   end

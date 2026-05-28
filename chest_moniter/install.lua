@@ -1,7 +1,7 @@
 local repo = "https://raw.githubusercontent.com/icanthink42/minenet"
 
 local files = {
-  "startup.lua",
+  "startup/main.lua",
   "main.lua",
   "config.lua",
   "chest.lua",
@@ -39,6 +39,11 @@ local function download(url)
 end
 
 local function writeFile(path, content)
+  local dir = fs.getDir(path)
+  if dir ~= "" and not fs.exists(dir) then
+    fs.makeDir(dir)
+  end
+
   local handle, reason = fs.open(path, "w")
   if not handle then
     return false, reason
@@ -50,6 +55,10 @@ local function writeFile(path, content)
 end
 
 local function install(branch)
+  if fs.exists("startup") and not fs.isDir("startup") then
+    fs.delete("startup")
+  end
+
   for _, file in ipairs(files) do
     write("Installing " .. file .. "... ")
 
@@ -82,4 +91,4 @@ if not ok then
 end
 
 print("Installed chest monitor files from branch " .. branch)
-print("Run 'main' now, or reboot to start through startup.lua.")
+print("Run 'main' now, or reboot to start through startup/main.lua.")

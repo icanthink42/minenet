@@ -153,6 +153,10 @@ local function currentShaftY()
     return 0
   end
 
+  if runState.direction() == "up" then
+    return y
+  end
+
   local bedrockY = runState.bedrockY()
   if bedrockY and y < bedrockY then
     return bedrockY
@@ -325,7 +329,12 @@ local function advanceShaft()
         return false, reason
       end
 
-      return true
+      ok, reason = movement.up()
+      if ok then
+        return true
+      end
+
+      return detourVertical(1)
     end
 
     return detourVertical(-1)

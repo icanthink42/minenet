@@ -1,7 +1,7 @@
 local repo = "https://raw.githubusercontent.com/icanthink42/minenet"
 
 local files = {
-  "startup.lua",
+  "startup/main.lua",
   "mode",
   "main.lua",
   "miner_config.lua",
@@ -65,6 +65,10 @@ local function writeFile(path, content)
 end
 
 local function install(branch)
+  if fs.exists("startup") and not fs.isDir("startup") then
+    fs.delete("startup")
+  end
+
   for _, file in ipairs(files) do
     local url = urlFor(branch, file)
     write("Installing " .. file .. "... ")
@@ -98,4 +102,4 @@ if not ok then
 end
 
 print("Installed minenet turtle files from branch " .. branch)
-print("Run 'main' now, or reboot to start through startup.lua.")
+print("Run 'main' now, or reboot to start through startup/main.lua.")
