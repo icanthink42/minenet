@@ -1,5 +1,6 @@
 local fuel = require("miner_fuel")
 local inventory = require("miner_inventory")
+local config = require("miner_config")
 local movement = require("movement")
 local mining = require("movement_mining")
 
@@ -19,13 +20,7 @@ local function key(x, y, z)
 end
 
 local function oreFamily(name)
-  local namespace, path = name:match("^([^:]+):(.+)$")
-  if not namespace then
-    return name
-  end
-
-  path = path:gsub("^deepslate_", "")
-  return namespace .. ":" .. path
+  return config.oreFamily(name)
 end
 
 local function fuelNeededToReachHome()
@@ -102,7 +97,10 @@ local function findAdjacentOre(targetFamily, visited)
         return nil, reason
       end
 
-      if exists and mining.isOre(block) and oreFamily(block.name) == targetFamily then
+      if exists
+        and mining.isOre(block)
+        and config.allowsOre(block.name)
+        and oreFamily(block.name) == targetFamily then
         return {
           x = x,
           y = y,

@@ -1,0 +1,77 @@
+local modeFile = ".miner_mode"
+local modeDir = "modes"
+
+local function currentMode()
+  if not fs.exists(modeFile) then
+    return "normal"
+  end
+
+  local handle = fs.open(modeFile, "r")
+  if not handle then
+    return "normal"
+  end
+
+  local mode = handle.readAll()
+  handle.close()
+  mode = mode:match("^%s*(.-)%s*$")
+
+  if mode == "" then
+    return "normal"
+  end
+
+  return mode
+end
+
+local function modeExists(name)
+  return fs.exists(fs.combine(modeDir, fs.combine(name, "config.lua")))
+end
+
+local function modes()
+  local found = {}
+
+  if fs.exists(modeDir) then
+    for _, name in ipairs(fs.list(modeDir)) do
+      if modeExists(name) then
+        table.insert(found, name)
+      end
+    end
+  end
+
+  table.sort(found)
+  return found
+end
+
+local function setMode(name)
+  if not modeExists(name) then
+    return false, "unknown mode: " .. tostring(name)
+  end
+
+  local handle, reason = fs.open(modeFile, "w")
+  if not handle then
+    return false, reason
+  end
+
+  handle.write(name)
+  handle.close()
+  return true
+end
+
+local args = { ... }
+
+if #args == 0 then
+  print("Current mode: " .. currentMode())
+  print("Available modes:")
+  for _, name in ipairs(modes()) do
+    print(" - " .. name)
+  end
+  print("Use: mode <mode name>")
+  return
+end
+
+local ok, reason = setMode(args[1])
+if not ok then
+  error(reason)
+end
+
+print("Mode set to " .. args[1])
+print("Restart main for the new mode to take effect.")

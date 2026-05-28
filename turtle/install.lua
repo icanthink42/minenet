@@ -2,6 +2,7 @@ local repo = "https://raw.githubusercontent.com/icanthink42/minenet"
 
 local files = {
   "startup.lua",
+  "mode",
   "main.lua",
   "miner_config.lua",
   "miner_fuel.lua",
@@ -13,6 +14,9 @@ local files = {
   "movement_mining.lua",
   "movement_pathfinder.lua",
   "movement_state.lua",
+  "modes/normal/config.lua",
+  "modes/netherite/config.lua",
+  "modes/diamond/config.lua",
 }
 
 local function trim(value)
@@ -45,6 +49,11 @@ local function download(url)
 end
 
 local function writeFile(path, content)
+  local dir = fs.getDir(path)
+  if dir ~= "" and not fs.exists(dir) then
+    fs.makeDir(dir)
+  end
+
   local handle, reason = fs.open(path, "w")
   if not handle then
     return false, reason
