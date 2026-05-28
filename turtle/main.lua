@@ -4,6 +4,7 @@ local inventory = require("miner_inventory")
 local log = require("logger")
 local movement = require("movement")
 local ore = require("miner_ore")
+local recall = require("recall")
 local scanner = require("miner_scanner")
 local runState = require("miner_state")
 
@@ -143,6 +144,10 @@ local function recoverOrStop(reason)
 end
 
 local function ensureCanContinue()
+  if recall.requested() then
+    return false, "recall requested"
+  end
+
   inventory.cleanup()
 
   if inventory.isFull() then
@@ -503,4 +508,14 @@ local function run()
   end
 end
 
-run()
+local function keyListener()
+  while true do
+    local _, key = os.pullEvent("key")
+    if key == keys.r then
+      print("Recall requested - returning home")
+      recall.request()
+    end
+  end
+end
+
+parallel.waitForAny(run, keyListener)
