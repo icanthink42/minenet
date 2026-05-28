@@ -4,6 +4,8 @@ local loki_endpoint = "http://127.0.0.1:3100/loki/api/v1/push"
 local fallback_endpoint = "https://log.neelema.net/loki/api/v1/push"
 local use_fallback = false
 
+local prometheus_endpoint = "http://127.0.0.1:9091"
+
 local function now()
   if textutils and textutils.formatTime and os.time then
     return textutils.formatTime(os.time(), true)
@@ -53,6 +55,23 @@ local function post(level, message)
       response.close()
     end
   end)
+end
+
+local function push_gauge(name, value)
+  if not http then return end
+
+  local url = string.format("%s/metrics/job/turtle/instance/%d", prometheus_endpoint, os.getComputerID())
+  local body = string.format("# TYPE %s gauge\n%s %s\n", name, name, tostring(value))
+  local headers = { ["Content-Type"] = "text/plain; version=0.0.4" }
+
+  pcall(function()
+    local response = http.post(url, body, headers)
+    if response then response.close() end
+  end)
+end
+
+function logger.gauge(name, value)
+  push_gauge(name, value)
 end
 
 function logger.info(message)
