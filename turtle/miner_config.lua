@@ -55,9 +55,11 @@ config.mode = readMode()
 
 local modeConfigPath = "modes/" .. config.mode .. "/config.lua"
 if fs.exists(modeConfigPath) then
-  local modeConfig = dofile(modeConfigPath)
-  if type(modeConfig) == "table" then
+  local ok, modeConfig = pcall(dofile, modeConfigPath)
+  if ok and type(modeConfig) == "table" then
     merge(modeConfig)
+  else
+    config.mode = "normal"
   end
 end
 

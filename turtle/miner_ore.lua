@@ -20,7 +20,17 @@ local function key(x, y, z)
 end
 
 local function oreFamily(name)
-  return config.oreFamily(name)
+  if config.oreFamily then
+    return config.oreFamily(name)
+  end
+
+  local namespace, path = name:match("^([^:]+):(.+)$")
+  if not namespace then
+    return name
+  end
+
+  path = path:gsub("^deepslate_", "")
+  return namespace .. ":" .. path
 end
 
 local function fuelNeededToReachHome()
@@ -99,7 +109,7 @@ local function findAdjacentOre(targetFamily, visited)
 
       if exists
         and mining.isOre(block)
-        and config.allowsOre(block.name)
+        and (not config.allowsOre or config.allowsOre(block.name))
         and oreFamily(block.name) == targetFamily then
         return {
           x = x,

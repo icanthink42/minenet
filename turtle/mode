@@ -70,7 +70,9 @@ end
 
 local ok, reason = setMode(args[1])
 if not ok then
-  error(reason)
+  print(reason)
+  print("Run 'mode' to see available modes.")
+  return
 end
 
 print("Mode set to " .. args[1])

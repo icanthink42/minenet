@@ -38,7 +38,15 @@ function scanner.scan(radius)
 end
 
 function scanner.isOre(block)
-  return mining.isOre(block) and config.allowsOre(block.name)
+  if not mining.isOre(block) then
+    return false
+  end
+
+  if config.allowsOre then
+    return config.allowsOre(block.name)
+  end
+
+  return true
 end
 
 function scanner.nearestOre(blocks)

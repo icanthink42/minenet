@@ -41,7 +41,15 @@ local function returnHome(reason)
 
   local ok, moveReason = movement.goTo(0, 0, 0)
   if not ok then
-    error("failed to return home: " .. tostring(moveReason))
+    print("Failed to return home: " .. tostring(moveReason))
+    while true do
+      os.sleep(5)
+      ok, moveReason = movement.goTo(0, 0, 0)
+      if ok then
+        break
+      end
+      print("Still trying to return home: " .. tostring(moveReason))
+    end
   end
 
   movement.face("north")
@@ -81,7 +89,7 @@ local function unloadAtHome()
 
   local ok, reason = movement.goTo(0, 0, 0)
   if not ok then
-    error("failed to return home: " .. tostring(reason))
+    return false
   end
 
   movement.face("north")
@@ -98,7 +106,7 @@ local function unloadAtHome()
 
   ok, reason = movement.goTo(resume.x, resume.y, resume.z)
   if not ok then
-    error("failed to resume after unload: " .. tostring(reason))
+    return false
   end
 
   return movement.face(resume.facing)
@@ -111,6 +119,11 @@ local function handleCannotContinue(reason)
     end
   end
 
+  returnHome(reason)
+  return false
+end
+
+local function recoverOrStop(reason)
   returnHome(reason)
   return false
 end
@@ -348,7 +361,8 @@ local function run()
       if handleCannotContinue(reason) then
         ok, reason = goToCurrentShaft()
         if not ok then
-          error(reason)
+          recoverOrStop(reason)
+          return
         end
       else
         return
@@ -357,7 +371,8 @@ local function run()
 
     ok, reason = goToCurrentShaft()
     if not ok then
-      error(reason)
+      recoverOrStop(reason)
+      return
     end
 
     if runState.direction() == "down" then
@@ -366,7 +381,8 @@ local function run()
         if handleCannotContinue(reason) then
           ok, reason = goToCurrentShaft()
           if not ok then
-            error(reason)
+            recoverOrStop(reason)
+            return
           end
         else
           return
@@ -379,7 +395,8 @@ local function run()
       if handleCannotContinue(reason) then
         ok, reason = goToCurrentShaft()
         if not ok then
-          error(reason)
+          recoverOrStop(reason)
+          return
         end
       else
         return
@@ -388,9 +405,17 @@ local function run()
 
     ok, reason = advanceShaft()
     if not ok then
-      error(reason)
+      recoverOrStop(reason)
+      return
     end
   end
 end
 
-run()
+local ok, reason = xpcall(run, function(err)
+  return debug.traceback(tostring(err), 2)
+end)
+
+if not ok then
+  print(reason)
+  returnHome(reason)
+end
