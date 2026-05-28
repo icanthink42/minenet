@@ -56,7 +56,15 @@ local allowedBlocks = {
   ["create:veridium"] = true,
 }
 
+local explicitOres = {
+  ["minecraft:ancient_debris"] = true,
+}
+
 local function isOre(block)
+  if explicitOres[block.name] then
+    return true
+  end
+
   if type(block.name) == "string" then
     if block.name:find("_ore") or block.name:find(":ore_") then
       return true
