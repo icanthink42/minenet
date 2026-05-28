@@ -2,7 +2,6 @@
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from json import dumps, loads
 from time import strftime
-from urllib.parse import parse_qs
 
 HOST = "0.0.0.0"
 PORT = 80
@@ -24,23 +23,22 @@ class Handler(BaseHTTPRequestHandler):
 
         try:
             data = loads(raw)
-            turtle_id = data.get("id")
-            level = data.get("level")
-            message = data.get("message")
         except Exception:
-            data = parse_qs(raw)
-            turtle_id = (data.get("id") or ["unknown"])[0]
-            level = (data.get("level") or ["info"])[0]
-            message = (data.get("message") or [""])[0]
+            self.send_response(400)
+            self.end_headers()
+            return
 
-        print_log(turtle_id, level, message)
+        # Loki push API format: { "streams": [{ "stream": {...}, "values": [[ts, line], ...] }] }
+        for stream in data.get("streams", []):
+            labels = stream.get("stream", {})
+            turtle_id = labels.get("turtle_id", "unknown")
+            level = labels.get("level", "info")
+            for entry in stream.get("values", []):
+                message = entry[1] if len(entry) > 1 else ""
+                print_log(turtle_id, level, message)
 
-        body = dumps({"ok": True}).encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
+        self.send_response(204)
         self.end_headers()
-        self.wfile.write(body)
 
     def do_GET(self):
         body = b"ok\n"
