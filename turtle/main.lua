@@ -446,6 +446,19 @@ local function advanceShaft()
   return detourVertical(1)
 end
 
+local function reportGauges()
+  local pos = movement.position()
+  local charcoal = fuel.charcoalCount()
+  local effectiveFuel = charcoal * 80 + (turtle.getFuelLevel() == "unlimited" and 0 or turtle.getFuelLevel())
+  local homeDist = math.abs(pos.x) + math.abs(pos.y) + math.abs(pos.z)
+
+  log.gauge("turtle_effective_fuel", effectiveFuel)
+  log.gauge("turtle_home_distance", homeDist)
+  log.gauge("turtle_column", runState.column())
+  log.gauge("turtle_shaft_y", currentShaftY())
+  log.flush_gauges()
+end
+
 local function run()
   local ok, reason = initialize()
   if not ok then
@@ -454,6 +467,7 @@ local function run()
   end
 
   while true do
+    reportGauges()
     ok, reason = ensureCanContinue()
     if not ok then
       if handleCannotContinue(reason) then

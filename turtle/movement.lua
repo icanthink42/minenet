@@ -33,7 +33,6 @@ local function move(turtleFn, updateState, inspectFn, digFn)
       log.gauge("turtle_x", state.x())
       log.gauge("turtle_y", state.y())
       log.gauge("turtle_z", state.z())
-      if turtle then log.gauge("turtle_fuel", turtle.getFuelLevel()) end
       log.flush_gauges()
 
       return true
