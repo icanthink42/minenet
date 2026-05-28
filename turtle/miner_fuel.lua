@@ -1,5 +1,6 @@
 local config = require("miner_config")
 local inventory = require("miner_inventory")
+local log = require("logger")
 
 local fuel = {}
 
@@ -42,6 +43,8 @@ local function ensureWithReserve(level, reserve)
     if not ok then
       return false, reason
     end
+
+    log.info("Refueled with charcoal; fuel level=" .. tostring(turtle.getFuelLevel()))
   end
 
   return true

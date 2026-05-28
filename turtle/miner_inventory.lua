@@ -1,5 +1,6 @@
 local inventory = {}
 local config = require("miner_config")
+local log = require("logger")
 
 local trashItems = {
   ["minecraft:stone"] = true,
@@ -64,6 +65,7 @@ function inventory.dropTrash()
   for slot = 1, 16 do
     local detail = turtle.getItemDetail(slot)
     if detail and trashItems[detail.name] then
+      log.info("Dropping trash " .. detail.count .. "x " .. detail.name)
       turtle.select(slot)
       turtle.drop()
     end
@@ -195,6 +197,7 @@ function inventory.depositNonFuel(inspectFn, dropFn)
     if detail and not config.charcoalItems[detail.name] then
       turtle.select(slot)
       if dropFn() then
+        log.info("Deposited " .. detail.count .. "x " .. detail.name)
         depositedAny = true
       end
     end

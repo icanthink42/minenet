@@ -1,4 +1,5 @@
 local config = require("miner_config")
+local log = require("logger")
 local mining = require("movement_mining")
 
 local scanner = {}
@@ -24,9 +25,11 @@ function scanner.scan(radius)
   for _ = 1, config.scanMaxAttempts do
     local blocks, reason = geo.scan(radius or config.scanRadius)
     if blocks then
+      log.info("Geo scan returned " .. #blocks .. " block(s)")
       return blocks
     end
 
+    log.warn("Geo scan failed/retrying: " .. tostring(reason))
     os.sleep(config.scanRetryDelay)
     if reason and not reason:find("cooldown") and not reason:find("wait") then
       -- Some failures are permanent for this scan, but the retry keeps behavior

@@ -4,6 +4,7 @@ local files = {
   "startup/main.lua",
   "mode",
   "main.lua",
+  "logger.lua",
   "miner_config.lua",
   "miner_fuel.lua",
   "miner_inventory.lua",

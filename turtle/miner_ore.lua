@@ -1,6 +1,7 @@
 local fuel = require("miner_fuel")
 local inventory = require("miner_inventory")
 local config = require("miner_config")
+local log = require("logger")
 local movement = require("movement")
 local mining = require("movement_mining")
 
@@ -143,6 +144,8 @@ local function mineConnectedOre(targetFamily, visited)
       return true
     end
 
+    log.info("Digging connected ore at x=" .. nextOre.x .. " y=" .. nextOre.y .. " z=" .. nextOre.z)
+
     ok, reason = digDirection(nextOre.dir)
     if not ok then
       return false, reason
@@ -168,6 +171,8 @@ local function mineConnectedOre(targetFamily, visited)
 end
 
 function ore.mineVeinAt(target)
+  log.info("Approaching vein target " .. target.name .. " at x=" .. target.x .. " y=" .. target.y .. " z=" .. target.z)
+
   local targetFamily = oreFamily(target.name)
   local approach = {
     { x = 1, y = 0, z = 0 },
@@ -196,6 +201,7 @@ function ore.mineVeinAt(target)
   end
 
   if not found then
+    log.info("Target no longer exists; skipping " .. target.name)
     return true, {}
   end
 
@@ -213,6 +219,7 @@ function ore.mineVeinAt(target)
     return false, reason
   end
 
+  log.info("Finished vein for " .. target.name)
   return true, visited
 end
 

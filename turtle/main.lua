@@ -1,6 +1,7 @@
 local config = require("miner_config")
 local fuel = require("miner_fuel")
 local inventory = require("miner_inventory")
+local log = require("logger")
 local movement = require("movement")
 local ore = require("miner_ore")
 local scanner = require("miner_scanner")
@@ -36,24 +37,24 @@ local function homeFuelNeed(extra)
 end
 
 local function returnHome(reason)
-  print("Returning home: " .. tostring(reason))
+  log.warn("Returning home: " .. tostring(reason))
   fuel.ensureEmergency(homeFuelNeed(256))
 
   local ok, moveReason = movement.goTo(0, 0, 0)
   if not ok then
-    print("Failed to return home: " .. tostring(moveReason))
+    log.warn("Failed to return home: " .. tostring(moveReason))
     while true do
       os.sleep(5)
       ok, moveReason = movement.goTo(0, 0, 0)
       if ok then
         break
       end
-      print("Still trying to return home: " .. tostring(moveReason))
+      log.warn("Still trying to return home: " .. tostring(moveReason))
     end
   end
 
   movement.face("north")
-  print("Stopped at home")
+  log.info("Stopped at home")
 end
 
 local function tryDepositAroundHome()
@@ -83,7 +84,7 @@ local function tryDepositAroundHome()
 end
 
 local function unloadAtHome()
-  print("Inventory full, returning home to unload")
+  log.info("Inventory full, returning home to unload")
   local resume = movement.position()
   fuel.ensureEmergency(homeFuelNeed(256))
 
@@ -95,20 +96,23 @@ local function unloadAtHome()
   movement.face("north")
 
   if not tryDepositAroundHome() then
-    print("No chest with space next to home")
+    log.warn("No chest with space next to home")
     return false
   end
 
   movement.face("north")
   if inventory.isFull() then
+    log.warn("Inventory still full after unloading")
     return false
   end
 
   ok, reason = movement.goTo(resume.x, resume.y, resume.z)
   if not ok then
+    log.warn("Failed to resume after unload: " .. tostring(reason))
     return false
   end
 
+  log.info("Unloaded at home and resumed mining position")
   return movement.face(resume.facing)
 end
 
@@ -175,6 +179,8 @@ local function goToCurrentShaft()
 end
 
 local function initialize()
+  log.info("Initializing miner in mode " .. tostring(config.mode or "normal"))
+
   local ok, reason = movement.load()
   if not ok then
     return false, reason
@@ -186,6 +192,8 @@ local function initialize()
   end
 
   if not runState.initialized() then
+    log.info("First run setup: moving to home column")
+
     ok, reason = ensureCanContinue()
     if not ok then
       return false, reason
@@ -204,6 +212,8 @@ local function initialize()
     return runState.markInitialized()
   end
 
+  local pos = movement.position()
+  log.info("Resuming at x=" .. pos.x .. " y=" .. pos.y .. " z=" .. pos.z .. " facing=" .. pos.facing)
   return true
 end
 
@@ -219,6 +229,8 @@ local function mineVisibleOreFromShaft()
   end
 
   local shaftPos = movement.position()
+  log.info("Scanning shaft x=" .. shaftPos.x .. " y=" .. shaftPos.y .. " z=" .. shaftPos.z)
+
   local blocks
   blocks, reason = scanner.scan(config.scanRadius)
   if not blocks then
@@ -238,6 +250,8 @@ local function mineVisibleOreFromShaft()
     end
   end
 
+  log.info("Scan found " .. #targets .. " ore target(s)")
+
   local minedTargets = {}
   for _, target in ipairs(targets) do
     local targetKey = tostring(target.x) .. "," .. tostring(target.y) .. "," .. tostring(target.z)
@@ -248,8 +262,10 @@ local function mineVisibleOreFromShaft()
       end
 
       local minedVein
+      log.info("Mining vein target " .. target.name .. " at x=" .. target.x .. " y=" .. target.y .. " z=" .. target.z)
       ok, minedVein = ore.mineVeinAt(target)
       if not ok then
+        log.warn("Vein mining failed: " .. tostring(minedVein))
         return false, minedVein
       end
 
@@ -261,9 +277,11 @@ local function mineVisibleOreFromShaft()
 
   ok, reason = movement.goTo(shaftPos.x, shaftPos.y, shaftPos.z)
   if not ok then
+    log.warn("Failed returning to shaft after ore: " .. tostring(reason))
     return false, reason
   end
 
+  log.info("Finished shaft scan targets; returned to shaft")
   return movement.face("north")
 end
 
@@ -276,6 +294,7 @@ local detourDirections = {
 
 local function detourVertical(verticalStep)
   local current = movement.position()
+  log.warn("Vertical movement blocked; searching detour from x=" .. current.x .. " y=" .. current.y .. " z=" .. current.z)
 
   local distance = 1
   while true do
@@ -289,6 +308,7 @@ local function detourVertical(verticalStep)
 
       ok, reason = movement.tryGoTo(currentColumnX(), current.y + verticalStep, currentColumnZ())
       if ok then
+        log.info("Using detour column offset x=" .. detourX .. " z=" .. detourZ)
         return true
       end
     end
@@ -301,10 +321,13 @@ end
 local function advanceShaft()
   local direction = runState.direction()
   local y = movement.position().y
+  log.info("Advancing shaft direction=" .. direction .. " y=" .. y)
 
   if direction == "down" then
     local bottomY = runState.bottomY()
     if bottomY and y <= bottomY then
+      log.info("Reached safe bottom y=" .. bottomY .. "; switching upward")
+
       local ok, reason = runState.clearDetour()
       if not ok then
         return false, reason
@@ -324,6 +347,8 @@ local function advanceShaft()
     end
 
     if reason and reason:find("minecraft:bedrock") then
+      log.warn("Bedrock detected at y=" .. y .. "; calibrating safe bottom")
+
       ok, reason = movement.goTo(shaftX(), y, shaftZ())
       if not ok then
         return false, reason
@@ -355,13 +380,17 @@ local function advanceShaft()
         return false, reason
       end
 
+      log.info("Safe bottom set to y=" .. bottomY .. "; switching upward")
       return true
     end
 
+    log.warn("Down blocked by " .. tostring(reason))
     return detourVertical(-1)
   end
 
   if y >= 0 then
+    log.info("Reached home level; moving to next shaft column")
+
     local ok, reason = runState.advance()
     if not ok then
       return false, reason
@@ -375,6 +404,7 @@ local function advanceShaft()
     return true
   end
 
+  log.warn("Up blocked by " .. tostring(reason))
   return detourVertical(1)
 end
 
