@@ -296,6 +296,7 @@ local function mineVisibleOreFromShaft()
       return false, minedVein
     end
 
+    minedTargets[targetKey] = true
     for minedKey in pairs(minedVein) do
       minedTargets[minedKey] = true
     end
