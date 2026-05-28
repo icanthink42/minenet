@@ -1,6 +1,6 @@
 local logger = {}
 
-local loki_endpoint = "http://localhost:3100/loki/api/v1/push"
+local loki_endpoint = "http://127.0.0.1:3100/loki/api/v1/push"
 local fallback_endpoint = "https://log.neelema.net/loki/api/v1/push"
 local use_fallback = false
 
