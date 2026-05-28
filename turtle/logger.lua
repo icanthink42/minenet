@@ -103,4 +103,9 @@ function logger.warn(message)
   post("warn", message)
 end
 
+function logger.error(message)
+  print("[" .. now() .. "] ERROR " .. tostring(message))
+  post("error", message)
+end
+
 return logger

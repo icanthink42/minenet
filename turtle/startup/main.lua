@@ -1,9 +1,16 @@
-while true do
-  local ok = shell.run("/main")
-  if ok then
-    break
-  end
+local log = require("logger")
 
-  print("main crashed; restarting in 5 seconds")
-  os.sleep(5)
+while true do
+  local fn, loadErr = loadfile("/main.lua")
+  if not fn then
+    log.error("main failed to load: " .. tostring(loadErr))
+    os.sleep(5)
+  else
+    local ok, err = xpcall(fn, debug.traceback)
+    if ok then
+      break
+    end
+    log.error("main crashed: " .. tostring(err))
+    os.sleep(5)
+  end
 end
