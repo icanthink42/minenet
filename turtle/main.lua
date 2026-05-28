@@ -31,6 +31,16 @@ local function shaftZ()
   return baseShaftZ()
 end
 
+local function maxDistanceFromHome()
+  return (config.maxChunksFromHome or 8) * 16
+end
+
+local function nextShaftWouldExceedRange()
+  local nextColumn = runState.column() + 1
+  local nextX = nextColumn * config.shaftSpacing()
+  return math.abs(nextX) > maxDistanceFromHome()
+end
+
 local function homeFuelNeed(extra)
   local pos = movement.position()
   return math.abs(pos.x) + math.abs(pos.y) + math.abs(pos.z) + (extra or 64)
@@ -390,6 +400,11 @@ local function advanceShaft()
 
   if y >= 0 then
     log.info("Reached home level; moving to next shaft column")
+
+    if nextShaftWouldExceedRange() then
+      log.info("Max range reached: " .. tostring(config.maxChunksFromHome or 8) .. " chunks from home")
+      return false, "max chunk range reached"
+    end
 
     local ok, reason = runState.advance()
     if not ok then

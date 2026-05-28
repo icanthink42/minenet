@@ -7,6 +7,7 @@ config.charcoalReserve = 16
 config.minFuelLevel = 128
 config.scanRetryDelay = 2
 config.scanMaxAttempts = 8
+config.maxChunksFromHome = 8
 config.oreFamilies = nil
 config.oreNames = nil
 
