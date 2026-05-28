@@ -1,2 +1,6 @@
 __pycache__/
 *.py[cod]
+
+craig/
+mount.sh
+install.sh
