@@ -90,9 +90,17 @@ function mining.canMine(block)
   return allowedBlocks[block.name] or isOre(block)
 end
 
+local function isLiquid(block)
+  return block.name == "minecraft:water" or block.name == "minecraft:lava"
+end
+
 function mining.clear(inspectFn, digFn)
   local exists, block = inspectFn()
   if not exists then
+    return true
+  end
+
+  if isLiquid(block) then
     return true
   end
 
