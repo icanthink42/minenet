@@ -19,16 +19,13 @@ local function post(level, message)
 
   local line = textutils.serializeJSON({
     message = tostring(message),
-    level = level,
     turtle_id = os.getComputerID(),
-    time = now(),
   })
 
   local body = textutils.serializeJSON({
     streams = {{
       stream = {
-        job = "turtle",
-        turtle_id = tostring(os.getComputerID()),
+        service = "turtle",
         level = level,
       },
       values = {
