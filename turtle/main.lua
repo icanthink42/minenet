@@ -411,11 +411,4 @@ local function run()
   end
 end
 
-local ok, reason = xpcall(run, function(err)
-  return debug.traceback(tostring(err), 2)
-end)
-
-if not ok then
-  print(reason)
-  returnHome(reason)
-end
+run()
