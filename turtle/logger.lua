@@ -17,6 +17,13 @@ local function post(level, message)
     return
   end
 
+  local line = textutils.serializeJSON({
+    message = tostring(message),
+    level = level,
+    turtle_id = os.getComputerID(),
+    time = now(),
+  })
+
   local body = textutils.serializeJSON({
     streams = {{
       stream = {
@@ -25,7 +32,7 @@ local function post(level, message)
         level = level,
       },
       values = {
-        { tostring(os.epoch("utc") * 1000000), tostring(message) },
+        { tostring(os.epoch("utc") * 1000000), line },
       },
     }},
   })
@@ -59,15 +66,13 @@ local function post(level, message)
 end
 
 function logger.info(message)
-  local line = "[" .. now() .. "] " .. tostring(message)
-  print(line)
-  post("info", line)
+  print("[" .. now() .. "] " .. tostring(message))
+  post("info", message)
 end
 
 function logger.warn(message)
-  local line = "[" .. now() .. "] WARN " .. tostring(message)
-  print(line)
-  post("warn", line)
+  print("[" .. now() .. "] WARN " .. tostring(message))
+  post("warn", message)
 end
 
 return logger

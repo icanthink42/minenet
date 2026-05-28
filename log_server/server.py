@@ -28,14 +28,19 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        # Loki push API format: { "streams": [{ "stream": {...}, "values": [[ts, line], ...] }] }
+        # Loki push API format: { "streams": [{ "stream": {...}, "values": [[ts, json_line], ...] }] }
         for stream in data.get("streams", []):
-            labels = stream.get("stream", {})
-            turtle_id = labels.get("turtle_id", "unknown")
-            level = labels.get("level", "info")
             for entry in stream.get("values", []):
-                message = entry[1] if len(entry) > 1 else ""
-                print_log(turtle_id, level, message)
+                line = entry[1] if len(entry) > 1 else "{}"
+                try:
+                    fields = loads(line)
+                except Exception:
+                    fields = {"message": line}
+                print_log(
+                    fields.get("turtle_id", "unknown"),
+                    fields.get("level", "info"),
+                    fields.get("message", ""),
+                )
 
         self.send_response(204)
         self.end_headers()
