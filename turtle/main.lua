@@ -288,6 +288,7 @@ local function mineVisibleOreFromShaft()
     end
 
     local target = targets[bestIdx]
+    local targetKey = tostring(target.x) .. "," .. tostring(target.y) .. "," .. tostring(target.z)
     ok, reason = ensureCanContinue()
     if not ok then
       return false, reason
