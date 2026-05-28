@@ -72,6 +72,16 @@ function inventory.dropTrash()
   end
 
   turtle.select(previousSlot)
+
+  local itemCount, slotsFull = 0, 0
+  for slot = 1, 16 do
+    local n = turtle.getItemCount(slot)
+    itemCount = itemCount + n
+    if n > 0 then slotsFull = slotsFull + 1 end
+  end
+  log.gauge("turtle_item_count", itemCount)
+  log.gauge("turtle_slots_used", slotsFull)
+  log.flush_gauges()
 end
 
 function inventory.compact()

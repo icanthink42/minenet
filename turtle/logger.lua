@@ -57,21 +57,40 @@ local function post(level, message)
   end)
 end
 
-local function push_gauge(name, value)
+local pending_gauges = {}
+
+function logger.gauge(name, value)
+  pending_gauges[name] = value
+end
+
+function logger.delete_gauges()
   if not http then return end
 
   local url = string.format("%s/metrics/job/turtle/instance/%d", prometheus_endpoint, os.getComputerID())
-  local body = string.format("# TYPE %s gauge\n%s %s\n", name, name, tostring(value))
+  pcall(function()
+    local response = http.request({ url = url, method = "DELETE" })
+    if response then response.close() end
+  end)
+end
+
+function logger.flush_gauges()
+  if not http then return end
+  if next(pending_gauges) == nil then return end
+
+  local url = string.format("%s/metrics/job/turtle/instance/%d", prometheus_endpoint, os.getComputerID())
+  local parts = {}
+  for name, value in pairs(pending_gauges) do
+    parts[#parts + 1] = string.format("# TYPE %s gauge\n%s %s\n", name, name, tostring(value))
+  end
+  local body = table.concat(parts)
   local headers = { ["Content-Type"] = "text/plain; version=0.0.4" }
 
   pcall(function()
     local response = http.post(url, body, headers)
     if response then response.close() end
   end)
-end
 
-function logger.gauge(name, value)
-  push_gauge(name, value)
+  pending_gauges = {}
 end
 
 function logger.info(message)

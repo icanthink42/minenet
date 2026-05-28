@@ -446,26 +446,6 @@ local function advanceShaft()
   return detourVertical(1)
 end
 
-local function reportGauges()
-  local pos = movement.position()
-  log.gauge("turtle_x", pos.x)
-  log.gauge("turtle_y", pos.y)
-  log.gauge("turtle_z", pos.z)
-  log.gauge("turtle_fuel", turtle.getFuelLevel())
-
-  local itemCount = 0
-  local slotsFull = 0
-  for slot = 1, 16 do
-    local n = turtle.getItemCount(slot)
-    itemCount = itemCount + n
-    if n > 0 then
-      slotsFull = slotsFull + 1
-    end
-  end
-  log.gauge("turtle_item_count", itemCount)
-  log.gauge("turtle_slots_used", slotsFull)
-end
-
 local function run()
   local ok, reason = initialize()
   if not ok then
@@ -474,7 +454,6 @@ local function run()
   end
 
   while true do
-    reportGauges()
     ok, reason = ensureCanContinue()
     if not ok then
       if handleCannotContinue(reason) then
@@ -541,3 +520,4 @@ local function keyListener()
 end
 
 parallel.waitForAny(run, keyListener)
+log.delete_gauges()

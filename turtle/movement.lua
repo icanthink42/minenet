@@ -2,6 +2,7 @@ local movement = {}
 local state = require("movement_state")
 local mining = require("movement_mining")
 local pathfinder = require("movement_pathfinder")
+local log = require("logger")
 
 local function isClear(inspectFn)
   if not inspectFn then
@@ -28,6 +29,12 @@ local function move(turtleFn, updateState, inspectFn, digFn)
       if not saved then
         return false, saveReason
       end
+
+      log.gauge("turtle_x", state.x())
+      log.gauge("turtle_y", state.y())
+      log.gauge("turtle_z", state.z())
+      if turtle then log.gauge("turtle_fuel", turtle.getFuelLevel()) end
+      log.flush_gauges()
 
       return true
     end
