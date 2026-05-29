@@ -1,6 +1,4 @@
--- yield one tick so the filesystem is mounted before require runs
-os.sleep(0)
-
+package.path = "/?.lua;" .. package.path
 local log = require("logger")
 
 while true do
@@ -9,6 +7,7 @@ while true do
     log.error("main failed to load: " .. tostring(loadErr))
     os.sleep(5)
   else
+    setfenv(fn, getfenv())
     local ok, err = xpcall(fn, debug.traceback)
     if ok then
       break
