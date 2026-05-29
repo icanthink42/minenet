@@ -1,3 +1,6 @@
+-- yield one tick so the filesystem is mounted before require runs
+os.sleep(0)
+
 local log = require("logger")
 
 while true do
