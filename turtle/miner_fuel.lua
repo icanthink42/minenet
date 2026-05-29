@@ -4,14 +4,17 @@ local log = require("logger")
 
 local fuel = {}
 
+---@return boolean
 local function isUnlimited()
   return turtle.getFuelLevel() == "unlimited"
 end
 
+---@return integer
 function fuel.charcoalCount()
   return inventory.countMatching(config.charcoalItems)
 end
 
+---@return boolean
 function fuel.shouldReturn()
   if isUnlimited() then
     return false
@@ -20,6 +23,10 @@ function fuel.shouldReturn()
   return fuel.charcoalCount() <= config.charcoalReserve
 end
 
+---@param level integer
+---@param reserve integer
+---@return boolean
+---@return string?
 local function ensureWithReserve(level, reserve)
   if isUnlimited() then
     return true
@@ -50,14 +57,22 @@ local function ensureWithReserve(level, reserve)
   return true
 end
 
+---@param level integer
+---@return boolean
+---@return string?
 function fuel.ensure(level)
   return ensureWithReserve(level, config.charcoalReserve)
 end
 
+---@param level integer
+---@return boolean
+---@return string?
 function fuel.ensureEmergency(level)
   return ensureWithReserve(level, 0)
 end
 
+---@return boolean
+---@return string?
 function fuel.refuelFromCharcoal()
   return fuel.ensure(config.minFuelLevel)
 end

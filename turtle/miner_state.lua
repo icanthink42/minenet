@@ -1,7 +1,19 @@
 local minerState = {}
 
+---@alias MinerDirection "down"|"up"
+
+---@class MinerStateData
+---@field column integer
+---@field direction MinerDirection
+---@field initialized boolean
+---@field bedrockY? number
+---@field bottomY? number
+---@field detourX number
+---@field detourZ number
+
 local stateFile = ".miner_state"
 
+---@type MinerStateData
 local state = {
   column = 0,
   direction = "down",
@@ -12,6 +24,8 @@ local state = {
   detourZ = 0,
 }
 
+---@param value MinerStateData
+---@return string
 local function serialize(value)
   if textutils and textutils.serialize then
     return textutils.serialize(value)
@@ -39,6 +53,8 @@ local function serialize(value)
   )
 end
 
+---@param value string
+---@return MinerStateData?
 local function unserialize(value)
   if textutils and textutils.unserialize then
     return textutils.unserialize(value)
@@ -57,6 +73,8 @@ local function unserialize(value)
   return nil
 end
 
+---@param value any
+---@return boolean
 local function valid(value)
   return type(value) == "table"
     and type(value.column) == "number"
@@ -70,6 +88,8 @@ local function valid(value)
     and (value.detourZ == nil or type(value.detourZ) == "number")
 end
 
+---@return boolean
+---@return string?
 function minerState.save()
   local handle, err = fs.open(stateFile, "w")
   if not handle then
@@ -81,6 +101,8 @@ function minerState.save()
   return true
 end
 
+---@return boolean
+---@return string?
 function minerState.load()
   if not fs.exists(stateFile) then
     minerState.save()
@@ -110,6 +132,7 @@ function minerState.load()
   return true
 end
 
+---@return MinerStateData
 function minerState.get()
   return {
     column = state.column,
@@ -122,22 +145,30 @@ function minerState.get()
   }
 end
 
+---@return integer
 function minerState.column()
   return state.column
 end
 
+---@return MinerDirection
 function minerState.direction()
   return state.direction
 end
 
+---@return number
 function minerState.detourX()
   return state.detourX
 end
 
+---@return number
 function minerState.detourZ()
   return state.detourZ
 end
 
+---@param x number
+---@param z number
+---@return boolean
+---@return string?
 function minerState.setDetour(x, z)
   if type(x) ~= "number" or type(z) ~= "number" then
     return false, "detour x and z must be numbers"
@@ -148,22 +179,30 @@ function minerState.setDetour(x, z)
   return minerState.save()
 end
 
+---@return boolean
+---@return string?
 function minerState.clearDetour()
   return minerState.setDetour(0, 0)
 end
 
+---@return boolean
 function minerState.initialized()
   return state.initialized
 end
 
+---@return number?
 function minerState.bedrockY()
   return state.bedrockY
 end
 
+---@return number?
 function minerState.bottomY()
   return state.bottomY
 end
 
+---@param y number
+---@return boolean
+---@return string?
 function minerState.setBedrockY(y)
   if type(y) ~= "number" then
     return false, "bedrock y must be a number"
@@ -173,6 +212,9 @@ function minerState.setBedrockY(y)
   return minerState.save()
 end
 
+---@param y number
+---@return boolean
+---@return string?
 function minerState.setBottomY(y)
   if type(y) ~= "number" then
     return false, "bottom y must be a number"
@@ -182,11 +224,15 @@ function minerState.setBottomY(y)
   return minerState.save()
 end
 
+---@return boolean
+---@return string?
 function minerState.markInitialized()
   state.initialized = true
   return minerState.save()
 end
 
+---@return boolean
+---@return string?
 function minerState.reset()
   state.column = 0
   state.direction = "down"
@@ -198,6 +244,10 @@ function minerState.reset()
   return minerState.save()
 end
 
+---@param column integer
+---@param direction MinerDirection
+---@return boolean
+---@return string?
 function minerState.set(column, direction)
   if type(column) ~= "number" then
     return false, "column must be a number"
@@ -212,6 +262,8 @@ function minerState.set(column, direction)
   return minerState.save()
 end
 
+---@return boolean
+---@return string?
 function minerState.advance()
   state.column = state.column + 1
   state.detourX = 0

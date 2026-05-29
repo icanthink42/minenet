@@ -2,6 +2,12 @@ local inventory = {}
 local config = require("miner_config")
 local log = require("logger")
 
+---@class ItemDetail
+---@field name string
+---@field count integer
+---@field nbt? any
+
+---@type table<string, boolean>
 local trashItems = {
   ["minecraft:stone"] = true,
   ["minecraft:cobblestone"] = true,
@@ -114,6 +120,7 @@ function inventory.cleanup()
   inventory.compact()
 end
 
+---@return boolean
 function inventory.isFull()
   inventory.cleanup()
 
@@ -126,6 +133,8 @@ function inventory.isFull()
   return true
 end
 
+---@param items table<string, boolean>
+---@return integer
 function inventory.countMatching(items)
   local count = 0
   for slot = 1, 16 do
@@ -138,6 +147,10 @@ function inventory.countMatching(items)
   return count
 end
 
+---@param items table<string, boolean>
+---@param minCount? integer
+---@return integer? slot
+---@return ItemDetail? detail
 function inventory.findMatching(items, minCount)
   for slot = 1, 16 do
     local detail = turtle.getItemDetail(slot)
@@ -149,6 +162,7 @@ function inventory.findMatching(items, minCount)
   return nil
 end
 
+---@return boolean
 function inventory.hasNonFuel()
   for slot = 1, 16 do
     local detail = turtle.getItemDetail(slot)
@@ -160,6 +174,8 @@ function inventory.hasNonFuel()
   return false
 end
 
+---@param block? Block
+---@return boolean
 local function isChestLike(block)
   if not block or type(block.name) ~= "string" then
     return false
@@ -188,6 +204,10 @@ local function isChestLike(block)
   return false
 end
 
+---@param inspectFn? fun(): boolean, Block
+---@param dropFn? fun(): boolean, string?
+---@return boolean
+---@return string?
 function inventory.depositNonFuel(inspectFn, dropFn)
   inspectFn = inspectFn or turtle.inspect
   dropFn = dropFn or turtle.drop
@@ -227,6 +247,7 @@ function inventory.depositNonFuel(inspectFn, dropFn)
   return true
 end
 
+---@return table<string, boolean>
 function inventory.trashItems()
   local copy = {}
   for name, trash in pairs(trashItems) do
@@ -236,6 +257,9 @@ function inventory.trashItems()
   return copy
 end
 
+---@param name string
+---@return boolean
+---@return string?
 function inventory.addTrash(name)
   if type(name) ~= "string" then
     return false, "item name must be a string"
@@ -245,6 +269,9 @@ function inventory.addTrash(name)
   return true
 end
 
+---@param name string
+---@return boolean
+---@return string?
 function inventory.removeTrash(name)
   if type(name) ~= "string" then
     return false, "item name must be a string"

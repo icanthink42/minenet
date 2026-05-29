@@ -1,7 +1,18 @@
 local movementState = {}
 
+---@alias Facing "north"|"east"|"south"|"west"
+
+---@class Vec3
+---@field x number
+---@field y number
+---@field z number
+
+---@class Position : Vec3
+---@field facing Facing
+
 local stateFile = ".movement_state"
 
+---@type table<Facing, {x: number, z: number}>
 local dirs = {
   north = { x = 0, z = -1 },
   east = { x = 1, z = 0 },
@@ -9,7 +20,9 @@ local dirs = {
   west = { x = -1, z = 0 },
 }
 
+---@type Facing[]
 local dirOrder = { "north", "east", "south", "west" }
+---@type table<Facing, integer>
 local dirIndex = {
   north = 1,
   east = 2,
@@ -17,6 +30,7 @@ local dirIndex = {
   west = 4,
 }
 
+---@type Position
 local state = {
   x = 0,
   y = 0,
@@ -24,6 +38,8 @@ local state = {
   facing = "north",
 }
 
+---@param value Position
+---@return string
 local function serialize(value)
   if textutils and textutils.serialize then
     return textutils.serialize(value)
@@ -38,6 +54,8 @@ local function serialize(value)
   )
 end
 
+---@param value string
+---@return Position?
 local function unserialize(value)
   if textutils and textutils.unserialize then
     return textutils.unserialize(value)
@@ -56,6 +74,8 @@ local function unserialize(value)
   return nil
 end
 
+---@param value any
+---@return boolean
 local function validState(value)
   return type(value) == "table"
     and type(value.x) == "number"
@@ -64,6 +84,8 @@ local function validState(value)
     and dirIndex[value.facing] ~= nil
 end
 
+---@return boolean
+---@return string?
 function movementState.save()
   local handle, err = fs.open(stateFile, "w")
   if not handle then
@@ -75,6 +97,8 @@ function movementState.save()
   return true
 end
 
+---@return boolean
+---@return string?
 function movementState.load()
   if not fs.exists(stateFile) then
     movementState.save()
@@ -101,6 +125,7 @@ function movementState.load()
   return true
 end
 
+---@return Position
 function movementState.position()
   return {
     x = state.x,
@@ -110,6 +135,9 @@ function movementState.position()
   }
 end
 
+---@param facing? Facing
+---@return boolean
+---@return string?
 function movementState.resetHome(facing)
   if facing ~= nil and dirIndex[facing] == nil then
     return false, "unknown facing: " .. tostring(facing)
@@ -122,10 +150,13 @@ function movementState.resetHome(facing)
   return movementState.save()
 end
 
+---@return Facing
 function movementState.facing()
   return state.facing
 end
 
+---@param facing Facing
+---@return integer?
 function movementState.facingIndex(facing)
   return dirIndex[facing]
 end
@@ -138,6 +169,7 @@ function movementState.turnRight()
   movementState.setFacingIndex(dirIndex[state.facing] + 1)
 end
 
+---@param index integer
 function movementState.setFacingIndex(index)
   while index < 1 do
     index = index + #dirOrder
@@ -150,24 +182,29 @@ function movementState.setFacingIndex(index)
   state.facing = dirOrder[index]
 end
 
+---@param distance number
 function movementState.moveHorizontal(distance)
   local dir = dirs[state.facing]
   state.x = state.x + dir.x * distance
   state.z = state.z + dir.z * distance
 end
 
+---@param distance number
 function movementState.moveVertical(distance)
   state.y = state.y + distance
 end
 
+---@return number
 function movementState.x()
   return state.x
 end
 
+---@return number
 function movementState.y()
   return state.y
 end
 
+---@return number
 function movementState.z()
   return state.z
 end

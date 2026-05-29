@@ -2,14 +2,20 @@ local config = require("config")
 
 local notifier = {}
 
+---@return table?
 local function findChatBox()
   return peripheral.find("chatBox") or peripheral.find("chat_box")
 end
 
+---@return table?
 function notifier.chatBox()
   return findChatBox()
 end
 
+---@param message string
+---@param title string
+---@return boolean
+---@return string?
 function notifier.toastAll(message, title)
   local chatBox = findChatBox()
   if not chatBox then
@@ -24,6 +30,10 @@ function notifier.toastAll(message, title)
   return true
 end
 
+---@param player string
+---@param message string
+---@return boolean
+---@return string?
 function notifier.messagePlayer(player, message)
   local chatBox = findChatBox()
   if not chatBox then

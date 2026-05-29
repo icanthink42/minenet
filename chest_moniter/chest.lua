@@ -1,5 +1,14 @@
 local chest = {}
 
+---@class InventoryPeripheral
+---@field list fun(): table<integer, {name: string, count: integer, nbt?: any}>
+
+---@class ItemSnapshot
+---@field name string
+---@field count integer
+---@field nbt? any
+
+---@type table<string, boolean>
 local ignoredPeripheralTypes = {
   chatBox = true,
   chat_box = true,
@@ -10,6 +19,8 @@ local ignoredPeripheralTypes = {
   speaker = true,
 }
 
+---@param name string
+---@return boolean
 local function isInventory(name)
   local types = { peripheral.getType(name) }
 
@@ -23,6 +34,8 @@ local function isInventory(name)
   return wrapped and type(wrapped.list) == "function"
 end
 
+---@return InventoryPeripheral? inventory
+---@return string nameOrErr
 function chest.find()
   for _, name in ipairs(peripheral.getNames()) do
     if isInventory(name) then
@@ -33,6 +46,8 @@ function chest.find()
   return nil, "no chest/inventory peripheral found"
 end
 
+---@param inventory InventoryPeripheral
+---@return table<integer, ItemSnapshot>
 function chest.snapshot(inventory)
   local items = inventory.list()
   local snapshot = {}
@@ -48,6 +63,9 @@ function chest.snapshot(inventory)
   return snapshot
 end
 
+---@param left table<integer, ItemSnapshot>
+---@param right table<integer, ItemSnapshot>
+---@return boolean
 function chest.equals(left, right)
   for slot = 1, math.max(#left, #right, 256) do
     local a = left[slot]
@@ -67,6 +85,8 @@ function chest.equals(left, right)
   return true
 end
 
+---@param inventory InventoryPeripheral
+---@return string
 function chest.summary(inventory)
   local totals = {}
   local names = {}
@@ -94,6 +114,8 @@ function chest.summary(inventory)
   return table.concat(lines, "\n")
 end
 
+---@param inventory InventoryPeripheral
+---@return integer
 function chest.itemCount(inventory)
   local total = 0
 

@@ -5,6 +5,7 @@ function recall.request()
   _requested = true
 end
 
+---@return boolean
 function recall.requested()
   return _requested
 end

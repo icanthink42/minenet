@@ -6,6 +6,7 @@ local use_fallback = false
 
 local prometheus_endpoint = "http://127.0.0.1:9091"
 
+---@return string
 local function now()
   if textutils and textutils.formatTime and os.time then
     return textutils.formatTime(os.time(), true)
@@ -14,6 +15,8 @@ local function now()
   return tostring(os.clock())
 end
 
+---@param level string
+---@param message any
 local function post(level, message)
   if not http or not textutils or not textutils.serializeJSON then
     return
@@ -57,8 +60,11 @@ local function post(level, message)
   end)
 end
 
+---@type table<string, number>
 local pending_gauges = {}
 
+---@param name string
+---@param value number
 function logger.gauge(name, value)
   pending_gauges[name] = value
 end
@@ -93,16 +99,19 @@ function logger.flush_gauges()
   pending_gauges = {}
 end
 
+---@param message any
 function logger.info(message)
   print("[" .. now() .. "] " .. tostring(message))
   post("info", message)
 end
 
+---@param message any
 function logger.warn(message)
   print("[" .. now() .. "] WARN " .. tostring(message))
   post("warn", message)
 end
 
+---@param message any
 function logger.error(message)
   print("[" .. now() .. "] ERROR " .. tostring(message))
   post("error", message)

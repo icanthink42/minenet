@@ -1,5 +1,10 @@
 local mining = {}
 
+---@class Block
+---@field name string
+---@field tags? table<string, boolean>
+
+---@type table<string, boolean>
 local allowedBlocks = {
   ["minecraft:stone"] = true,
   ["minecraft:cobblestone"] = true,
@@ -56,10 +61,13 @@ local allowedBlocks = {
   ["create:veridium"] = true,
 }
 
+---@type table<string, boolean>
 local explicitOres = {
   ["minecraft:ancient_debris"] = true,
 }
 
+---@param block Block
+---@return boolean
 local function isOre(block)
   if explicitOres[block.name] then
     return true
@@ -82,18 +90,28 @@ local function isOre(block)
   return false
 end
 
+---@param block Block
+---@return boolean
 function mining.isOre(block)
   return isOre(block)
 end
 
+---@param block Block
+---@return boolean
 function mining.canMine(block)
   return allowedBlocks[block.name] or isOre(block)
 end
 
+---@param block Block
+---@return boolean
 local function isLiquid(block)
   return block.name == "minecraft:water" or block.name == "minecraft:lava"
 end
 
+---@param inspectFn fun(): boolean, Block
+---@param digFn fun(): boolean, string?
+---@return boolean
+---@return string?
 function mining.clear(inspectFn, digFn)
   local exists, block = inspectFn()
   if not exists then
@@ -116,6 +134,7 @@ function mining.clear(inspectFn, digFn)
   return true
 end
 
+---@return table<string, boolean>
 function mining.allowedBlocks()
   local copy = {}
   for name, allowed in pairs(allowedBlocks) do
@@ -125,6 +144,9 @@ function mining.allowedBlocks()
   return copy
 end
 
+---@param name string
+---@return boolean
+---@return string?
 function mining.allowBlock(name)
   if type(name) ~= "string" then
     return false, "block name must be a string"
@@ -134,6 +156,9 @@ function mining.allowBlock(name)
   return true
 end
 
+---@param name string
+---@return boolean
+---@return string?
 function mining.disallowBlock(name)
   if type(name) ~= "string" then
     return false, "block name must be a string"

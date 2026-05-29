@@ -4,6 +4,12 @@ local mining = require("movement_mining")
 
 local scanner = {}
 
+---@class ScannedBlock : Block
+---@field x number
+---@field y number
+---@field z number
+
+---@return table?
 local function findScanner()
   if peripheral and peripheral.find then
     return peripheral.find("geoScanner") or peripheral.find("geo_scanner")
@@ -12,10 +18,15 @@ local function findScanner()
   return nil
 end
 
+---@param block ScannedBlock
+---@return number
 local function distanceSquared(block)
   return block.x * block.x + block.y * block.y + block.z * block.z
 end
 
+---@param radius? integer
+---@return ScannedBlock[]?
+---@return string?
 function scanner.scan(radius)
   local geo = findScanner()
   if not geo then
@@ -40,6 +51,8 @@ function scanner.scan(radius)
   return nil, "geo scanner scan failed after retries"
 end
 
+---@param block ScannedBlock
+---@return boolean
 function scanner.isOre(block)
   if not mining.isOre(block) then
     return false
@@ -52,6 +65,8 @@ function scanner.isOre(block)
   return true
 end
 
+---@param blocks ScannedBlock[]
+---@return ScannedBlock?
 function scanner.nearestOre(blocks)
   local best = nil
   local bestDistance = nil
@@ -69,6 +84,9 @@ function scanner.nearestOre(blocks)
   return best
 end
 
+---@param blocks ScannedBlock[]
+---@param name string
+---@return ScannedBlock?
 function scanner.nearestOreByName(blocks, name)
   local best = nil
   local bestDistance = nil

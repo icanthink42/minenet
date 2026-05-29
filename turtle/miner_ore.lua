@@ -7,6 +7,18 @@ local mining = require("movement_mining")
 
 local ore = {}
 
+---@class OreTarget : Vec3
+---@field name string
+
+---@class NeighborDir : Vec3
+---@field facing? Facing
+---@field inspect fun(): boolean, Block
+---@field dig fun(): boolean, string?
+
+---@class AdjacentOre : Vec3
+---@field dir NeighborDir
+
+---@type NeighborDir[]
 local neighborDirs = {
   { x = 1, y = 0, z = 0, facing = "east", inspect = turtle.inspect, dig = movement.digForward },
   { x = -1, y = 0, z = 0, facing = "west", inspect = turtle.inspect, dig = movement.digForward },
@@ -16,10 +28,16 @@ local neighborDirs = {
   { x = 0, y = -1, z = 0, inspect = turtle.inspectDown, dig = movement.digDown },
 }
 
+---@param x number
+---@param y number
+---@param z number
+---@return string
 local function key(x, y, z)
   return tostring(x) .. "," .. tostring(y) .. "," .. tostring(z)
 end
 
+---@param name string
+---@return string
 local function oreFamily(name)
   if config.oreFamily then
     return config.oreFamily(name)
@@ -34,11 +52,14 @@ local function oreFamily(name)
   return namespace .. ":" .. path
 end
 
+---@return integer
 local function fuelNeededToReachHome()
   local pos = movement.position()
   return math.abs(pos.x) + math.abs(pos.y) + math.abs(pos.z) + 64
 end
 
+---@return boolean
+---@return string?
 local function ensureCanMineOre()
   inventory.cleanup()
 
@@ -53,6 +74,10 @@ local function ensureCanMineOre()
   return fuel.ensure(fuelNeededToReachHome())
 end
 
+---@param dir NeighborDir
+---@return boolean exists
+---@return Block? block
+---@return string? reason
 local function inspectDirection(dir)
   if dir.facing then
     local ok, reason = movement.face(dir.facing)
@@ -65,6 +90,9 @@ local function inspectDirection(dir)
   return exists, block
 end
 
+---@param dir NeighborDir
+---@return boolean
+---@return string?
 local function digDirection(dir)
   if dir.facing then
     local ok, reason = movement.face(dir.facing)
@@ -76,6 +104,9 @@ local function digDirection(dir)
   return dir.dig()
 end
 
+---@param dir NeighborDir
+---@return boolean
+---@return string?
 local function moveIntoDirection(dir)
   if dir.y == 1 then
     return movement.up()
@@ -93,6 +124,10 @@ local function moveIntoDirection(dir)
   return movement.forward()
 end
 
+---@param targetFamily string
+---@param visited table<string, boolean>
+---@return AdjacentOre?
+---@return string?
 local function findAdjacentOre(targetFamily, visited)
   local pos = movement.position()
 
@@ -125,6 +160,10 @@ local function findAdjacentOre(targetFamily, visited)
   return nil
 end
 
+---@param targetFamily string
+---@param visited table<string, boolean>
+---@return boolean
+---@return string?
 local function mineConnectedOre(targetFamily, visited)
   local origin = movement.position()
 
@@ -170,6 +209,9 @@ local function mineConnectedOre(targetFamily, visited)
   end
 end
 
+---@param target OreTarget
+---@return boolean
+---@return table<string, boolean>|string? visitedOrReason
 function ore.mineVeinAt(target)
   log.info("Approaching vein target " .. target.name .. " at x=" .. target.x .. " y=" .. target.y .. " z=" .. target.z)
 
@@ -223,6 +265,8 @@ function ore.mineVeinAt(target)
   return true, visited
 end
 
+---@param name string
+---@return string
 function ore.family(name)
   return oreFamily(name)
 end

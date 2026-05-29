@@ -10,6 +10,8 @@ local runState = require("miner_state")
 
 local homeStateFile = ".home_state"
 
+---@return table<string, string>? snapshot
+---@return string? err
 local function snapshotHome()
   local dirs = { "north", "east", "south", "west" }
   local blocks = {}
@@ -38,6 +40,8 @@ local function snapshotHome()
   return blocks
 end
 
+---@param snapshot table<string, string>
+---@return string
 local function homeStateString(snapshot)
   local parts = {}
   for _, dir in ipairs({ "north", "east", "south", "west", "up", "down" }) do
@@ -46,6 +50,9 @@ local function homeStateString(snapshot)
   return table.concat(parts, ";")
 end
 
+---@param snapshot table<string, string>
+---@return boolean
+---@return string?
 local function saveHomeState(snapshot)
   local handle, err = fs.open(homeStateFile, "w")
   if not handle then
@@ -56,6 +63,7 @@ local function saveHomeState(snapshot)
   return true
 end
 
+---@return string?
 local function loadSavedHomeState()
   if not fs.exists(homeStateFile) then
     return nil
@@ -69,6 +77,8 @@ local function loadSavedHomeState()
   return content
 end
 
+---@return boolean
+---@return string?
 local function checkAndUpdateHomeState()
   local snapshot, err = snapshotHome()
   if not snapshot then
@@ -92,45 +102,56 @@ local function checkAndUpdateHomeState()
   return true
 end
 
+---@return integer
 local function baseShaftX()
   return runState.column() * config.shaftSpacing()
 end
 
+---@return integer
 local function baseShaftZ()
   return 0
 end
 
+---@return integer
 local function currentColumnX()
   return baseShaftX() + runState.detourX()
 end
 
+---@return integer
 local function currentColumnZ()
   return baseShaftZ() + runState.detourZ()
 end
 
+---@return integer
 local function shaftX()
   return baseShaftX()
 end
 
+---@return integer
 local function shaftZ()
   return baseShaftZ()
 end
 
+---@return integer
 local function maxDistanceFromHome()
   return (config.maxChunksFromHome or 8) * 16
 end
 
+---@return boolean
 local function nextShaftWouldExceedRange()
   local nextColumn = runState.column() + 1
   local nextX = nextColumn * config.shaftSpacing()
   return math.abs(nextX) > maxDistanceFromHome()
 end
 
+---@param extra? integer
+---@return integer
 local function homeFuelNeed(extra)
   local pos = movement.position()
   return math.abs(pos.x) + math.abs(pos.y) + math.abs(pos.z) + (extra or 64)
 end
 
+---@param reason string
 local function returnHome(reason)
   log.warn("Returning home: " .. tostring(reason))
   fuel.ensureEmergency(homeFuelNeed(256))
@@ -152,6 +173,7 @@ local function returnHome(reason)
   log.info("Stopped at home")
 end
 
+---@return boolean
 local function tryDepositAroundHome()
   for _ = 1, 4 do
     local ok = inventory.depositNonFuel()
@@ -178,6 +200,7 @@ local function tryDepositAroundHome()
   return false
 end
 
+---@return boolean
 local function unloadAtHome()
   log.info("Inventory full, returning home to unload")
   local resume = movement.position()
@@ -211,6 +234,8 @@ local function unloadAtHome()
   return movement.face(resume.facing)
 end
 
+---@param reason string
+---@return boolean
 local function handleCannotContinue(reason)
   if reason == "inventory full" then
     if unloadAtHome() then
@@ -222,11 +247,15 @@ local function handleCannotContinue(reason)
   return false
 end
 
+---@param reason string
+---@return false
 local function recoverOrStop(reason)
   returnHome(reason)
   return false
 end
 
+---@return boolean
+---@return string?
 local function ensureCanContinue()
   if recall.requested() then
     return false, "recall requested"
@@ -250,6 +279,7 @@ local function ensureCanContinue()
   return true
 end
 
+---@return number
 local function currentShaftY()
   local y = movement.position().y
   if y > 0 then
@@ -268,6 +298,8 @@ local function currentShaftY()
   return y
 end
 
+---@return boolean
+---@return string?
 local function goToCurrentShaft()
   local ok, reason = movement.goTo(shaftX(), currentShaftY(), shaftZ())
   if not ok then
@@ -277,6 +309,8 @@ local function goToCurrentShaft()
   return movement.face("north")
 end
 
+---@return boolean
+---@return string?
 local function initialize()
   log.info("Initializing miner in mode " .. tostring(config.mode or "normal"))
 
@@ -321,6 +355,8 @@ local function initialize()
   return true
 end
 
+---@return boolean
+---@return string?
 local function mineVisibleOreFromShaft()
   local ok, reason = ensureCanContinue()
   if not ok then
@@ -341,6 +377,7 @@ local function mineVisibleOreFromShaft()
     return false, reason
   end
 
+  ---@type OreTarget[]
   local targets = {}
   for _, block in ipairs(blocks) do
     if scanner.isOre(block) then
@@ -452,6 +489,9 @@ local detourDirections = {
   { x = 0, z = -1 },
 }
 
+---@param verticalStep integer
+---@return boolean
+---@return string?
 local function detourVertical(verticalStep)
   local current = movement.position()
   log.warn("Vertical movement blocked; searching detour from x=" .. current.x .. " y=" .. current.y .. " z=" .. current.z)
@@ -478,6 +518,8 @@ local function detourVertical(verticalStep)
   end
 end
 
+---@return boolean
+---@return string?
 local function advanceShaft()
   local direction = runState.direction()
   local y = movement.position().y
